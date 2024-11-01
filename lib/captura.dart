@@ -17,14 +17,10 @@ class _CapturaState extends State<Captura> {
   DateTime? _lastSelectedDate;
   DateTime? _lastCapturedDate;
   List<int> _capturedPokemons = [];
-  late List<int> _currentPokemons = _capturedPokemons;
 
   @override
   void initState() {
-    super.initState(); // Use a lista passada ou inicialize como vazia
-    if (_currentPokemons.isEmpty) {
-      _loadCapturedPokemons(); // Carrega do SharedPreferences se a lista estiver vazia
-    }// os pokemons que temos agr
+    super.initState();
     _loadData();
   }
 
@@ -121,14 +117,6 @@ class _CapturaState extends State<Captura> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Pokémon capturados resetados!")));
   }
 
-  //carrega a sharedpreferences para não perdemos o time
-  Future<void> _loadCapturedPokemons() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _currentPokemons = prefs.getStringList('capturedPokemons')?.map((e) => int.parse(e)).toList() ?? [];
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -202,7 +190,7 @@ class _CapturaState extends State<Captura> {
                 SizedBox(height: 20),
                 // Quantos já foram capturados
                 Text(
-                  'Pokémons Capturados: ${_currentPokemons.length}/6',
+                  'Pokémons Capturados: ${_capturedPokemons.length}/6',
                   style: TextStyle(
                     color: const Color.fromARGB(255, 129, 38, 38),
                     fontWeight: FontWeight.bold,

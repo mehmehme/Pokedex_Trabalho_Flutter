@@ -1,4 +1,4 @@
-<h1 align="center" style="font-size: 40px;">Pokedex</h1>
+<h1 align="center" style="font-size: 40px;">Projeto Pokedex</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Pokedex-8B0000?style=for-the-badge&logoColor=white" alt="Pokedex Badge" />

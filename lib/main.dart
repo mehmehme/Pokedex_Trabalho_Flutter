@@ -6,6 +6,8 @@ import 'timePok.dart';
 import 'captura.dart';
 import 'estilos/fundoPoke.dart';
 
+//git push -u origin main //envia ao git
+//git commit -m "Initial commit" //envia as alterações
 void main() {
   runApp(MainApp());
 }

@@ -1,13 +1,16 @@
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pokedex/data/data.dart';
 import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
 
-class MeuPok extends StatelessWidget{
-final String pokemonName;
+class MeuPok extends StatelessWidget {
+  final String pokemonName;
   final int pokemonId;
-  final List<Pokemon> team; // Lista de Pokémons do time
-  final Function(int) onRelease; // Função para liberar Pokémon
+  final List<Pokemon> team;
+  final Function(int) onRelease;
 
   const MeuPok({
     super.key,
@@ -17,6 +20,27 @@ final String pokemonName;
     required this.onRelease,
   });
 
+  Future<Pokemon> _fetchPokemonData() async {
+    // Verifica a conectividade
+    var connectivityResult = await Connectivity().checkConnectivity();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    
+    if (connectivityResult == ConnectivityResult.none) {
+      // Sem internet, carregue do cache
+      String? cachedData = prefs.getString('pokemon_$pokemonId');
+      if (cachedData != null) {
+        return Pokemon.fromJson(jsonDecode(cachedData));
+      } else {
+        throw Exception('Dados do Pokémon não encontrados no cache.');
+      }
+    } else {
+      // Conectado, carregue da API e armazene no cache
+      Pokemon pokemon = await servicPoke.PokemonService.fetchPokemonDetails(pokemonName);
+      prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
+      return pokemon;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +49,7 @@ final String pokemonName;
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 177, 53, 53)], // Cores do gradiente
+              colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 177, 53, 53)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -33,31 +57,31 @@ final String pokemonName;
         ),
         title: Text(
           pokemonName,
-          style: TextStyle(
-            color: Colors.white, // Define o texto do título em branco
+          style: const TextStyle(
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
       ),
       body: FutureBuilder<Pokemon>(
-        future: servicPoke.PokemonService.fetchPokemonDetails(pokemonName),
-        builder: (context, snapshot) {
+        future: _fetchPokemonData(),
+        builder: (context, snapshot) {//espera a conecção
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Erro: ${snapshot.error}'));
           } else {
             final pokemon = snapshot.data!;
-      return Stack(
-        children: [
-          Image.asset(
-            'assets/images/fundo2.png',
-            fit: BoxFit.cover, // Para cobrir toda a tela
-            width: double.infinity,
-            height: double.infinity,
-          ),
-          Padding(
+            return Stack(
+              children: [
+                Image.asset(
+                  'assets/images/fundo2.png',
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+                Padding(
                   padding: const EdgeInsets.only(left: 80.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -94,7 +118,6 @@ final String pokemonName;
                             width: 8,
                           ),
                         ),
-                        //nome do pokemon
                         child: Column(
                           children: [
                             Text(
@@ -105,7 +128,6 @@ final String pokemonName;
                                 fontSize: 30,
                               ),
                             ),
-                            //tipo do pokemon
                             Text(
                               'Tipo: ${pokemon.type.join(', ')}',
                               style: const TextStyle(
@@ -122,15 +144,11 @@ final String pokemonName;
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            //cada informação do pokemon divida
                             const Divider(),
-                             // vai para cada atributo
                             for (var key in pokemon.base.keys)
-                            //coluna dos tipos
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  //o tipo
                                   Text(
                                     '$key: ${pokemon.base[key]}',
                                     style: const TextStyle(
@@ -139,56 +157,55 @@ final String pokemonName;
                                       fontSize: 12,
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  //a barra de progresso pelo numero do dado
+                                  const SizedBox(height: 8),
                                   LinearProgressIndicator(
-                                    value: pokemon.base[key] / 100, // Supondo que o máximo é 100
+                                    value: pokemon.base[key] / 100,
                                     backgroundColor: Colors.white54,
                                     color: Colors.white,
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 8),
-                              OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      fixedSize: Size(MediaQuery.of(context).size.width*0.6, MediaQuery.of(context).size.height*0.1),
-                                      backgroundColor: const Color.fromARGB(255, 167, 57, 57), // Cor do fundo
-                                      side: const BorderSide(color: Color.fromARGB(255, 223, 121, 121), width: 6), // Cor e largura da borda
-                                    ),
-                                    onPressed: () {
-                                      //retira o pokemon da lista
-                                      onRelease(pokemonId);
-                                      //volta ao time
-                                      Navigator.pop(context);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        //mostra uma mensagem
-                                        const SnackBar(
-                                          content: Text('Pokémon liberado!'),
-                                          duration: Duration(seconds: 6),
-                                        ),
-                                      );},
-                                    child: Text(
-                                      'Soltar',
-                                      style: const TextStyle(
-                                        color: Color.fromARGB(255, 255, 248, 248),
-                                        fontFamily: 'Sans',
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 25.0,
-                                    ),
-                                    ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                fixedSize: Size(MediaQuery.of(context).size.width * 0.6,
+                                    MediaQuery.of(context).size.height * 0.1),
+                                backgroundColor: const Color.fromARGB(255, 167, 57, 57),
+                                side: const BorderSide(
+                                  color: Color.fromARGB(255, 223, 121, 121),
+                                  width: 6,
+                                ),
+                              ),
+                              onPressed: () {
+                                onRelease(pokemonId);
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Pokémon liberado!'),
+                                    duration: Duration(seconds: 6),
                                   ),
+                                );
+                              },
+                              child: const Text(
+                                'Soltar',
+                                style: TextStyle(
+                                  color: Color.fromARGB(255, 255, 248, 248),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 25.0,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
                 ),
-        ],
-      );
+              ],
+            );
           }
         },
       ),
     );
   }
-
 }

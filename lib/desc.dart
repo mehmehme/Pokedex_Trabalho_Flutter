@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
 import 'package:pokedex/data/data.dart';
 
-//cria a descrição
 class Descricao extends StatelessWidget {
   final String pokemonName;
   final int pokemonId;
@@ -13,6 +15,27 @@ class Descricao extends StatelessWidget {
     required this.pokemonName,
     required this.pokemonId,
   });
+
+  Future<Pokemon> _fetchPokemonData() async {
+    // Verifica a conectividade
+    var connectivityResult = await Connectivity().checkConnectivity();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    
+    if (connectivityResult == ConnectivityResult.none) {
+      // Sem internet, carregue do cache
+      String? cachedData = prefs.getString('pokemon_$pokemonId');
+      if (cachedData != null) {
+        return Pokemon.fromJson(jsonDecode(cachedData));
+      } else {
+        throw Exception('Dados do Pokémon não encontrados no cache.');
+      }
+    } else {
+      // Conectado, carregue da API e armazene no cache
+      Pokemon pokemon = await servicPoke.PokemonService.fetchPokemonDetails(pokemonName);
+      prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
+      return pokemon;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +60,8 @@ class Descricao extends StatelessWidget {
           ),
         ),
       ),
-      //pega os detalhes do pokemon
       body: FutureBuilder<Pokemon>(
-        future: servicPoke.PokemonService.fetchPokemonDetails(pokemonName),
+        future: _fetchPokemonData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -48,7 +70,6 @@ class Descricao extends StatelessWidget {
           } else {
             final pokemon = snapshot.data!;
             return Stack(
-              //fundo
               children: [
                 Image.asset(
                   'assets/images/fundo2.png',
@@ -56,7 +77,7 @@ class Descricao extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                   errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.error); // O que fazer se a imagem falhar ao carregar
+                    return const Icon(Icons.error);
                   },
                 ),
                 Padding(
@@ -96,7 +117,6 @@ class Descricao extends StatelessWidget {
                             width: 8,
                           ),
                         ),
-                        //nome do pokemon
                         child: Column(
                           children: [
                             Text(
@@ -107,7 +127,6 @@ class Descricao extends StatelessWidget {
                                 fontSize: 30,
                               ),
                             ),
-                            //tipo do pokemon
                             Text(
                               'Tipo: ${pokemon.type.join(', ')}',
                               style: const TextStyle(
@@ -124,15 +143,11 @@ class Descricao extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            //cada informação do pokemon divida
                             const Divider(),
-                             // vai para cada atributo
                             for (var key in pokemon.base.keys)
-                            //coluna dos tipos
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  //o tipo
                                   Text(
                                     '$key: ${pokemon.base[key]}',
                                     style: const TextStyle(
@@ -141,10 +156,9 @@ class Descricao extends StatelessWidget {
                                       fontSize: 25,
                                     ),
                                   ),
-                                  SizedBox(height: 5),
-                                  //a barra de progresso pelo numero do dado
+                                  const SizedBox(height: 5),
                                   LinearProgressIndicator(
-                                    value: pokemon.base[key] / 100, // Supondo que o máximo é 100
+                                    value: pokemon.base[key] / 100,
                                     backgroundColor: Colors.white54,
                                     color: Colors.white,
                                   ),

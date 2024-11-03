@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:pokedex/data/data.dart';
 import 'package:pokedex/data/servicoPoke.dart' as pokemonServ;
 import 'package:pokedex/desc.dart';
@@ -11,7 +14,7 @@ class PokemonListScreen extends StatefulWidget {
 }
 
 class _PokemonListScreenState extends State<PokemonListScreen> {
-  List<Pokemon> pokemons = []; // Altera para a lista de Pokémon
+  List<Pokemon> pokemons = []; //lista de pokemons
   int currentOffset = 0;
   bool isLoading = false;
   bool hasMore = true;
@@ -22,19 +25,28 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     _loadInitialPokemons();
   }
 
-  // Carrega os primeiros Pokémon e configura a paginação
   Future<void> _loadInitialPokemons() async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      List<Pokemon>? allPokemons = (await pokemonServ.PokemonService.fetchAllPokemons()).cast<Pokemon>();
-      if (allPokemons.isNotEmpty) {
+      bool isConnected = await _checkInternetConnection();
+      if (isConnected) {
+        // Carregar da API
+        List<Pokemon> allPokemons = (await pokemonServ.PokemonService.fetchAllPokemons()).cast<Pokemon>();
+        await _cachePokemonData(allPokemons);
         setState(() {
           pokemons = allPokemons.sublist(0, pokemonServ.PokemonService.limit);
           currentOffset = pokemonServ.PokemonService.limit;
           hasMore = currentOffset < allPokemons.length;
+        });
+      } else {
+        // Carregar do cache
+        List<Pokemon> cachedPokemons = await _loadPokemonsFromCache();
+        setState(() {
+          pokemons = cachedPokemons;
+          hasMore = false; // Considera que o cache é o conjunto completo de dados offline
         });
       }
     } catch (e) {
@@ -45,20 +57,54 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
       });
     }
   }
-  // Carrega mais Pokémon para paginação local
+
+  // Verifica se há conexão com a internet
+  Future<bool> _checkInternetConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult != ConnectivityResult.none;
+  }
+
+  // Carrega os Pokémon do cache
+  Future<List<Pokemon>> _loadPokemonsFromCache() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? cachedPokemonsJson = prefs.getStringList('cachedPokemons');
+    List<Pokemon> pokemons = [];
+
+  if (cachedPokemonsJson != null) {
+      for (var pokemonJson in cachedPokemonsJson) {
+        try {
+          // Tente decodificar e criar um Pokémon
+          var decodedJson = jsonDecode(pokemonJson);
+          pokemons.add(Pokemon.fromJson(decodedJson));
+        } catch (e) {
+          // Se houver um erro, imprima ou trate conforme necessário
+          print('Erro ao carregar Pokémon do cache: $e');
+        }
+      }
+  }
+      return pokemons;
+  }
+
+  // Salva os dados dos Pokémon no cache
+  Future<void> _cachePokemonData(List<Pokemon> pokemonList) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> pokemonJsonList = pokemonList.map((pokemon) => jsonEncode(pokemon.toJson())).toList();
+    await prefs.setStringList('cachedPokemons', pokemonJsonList);
+  }
+//carrega e adiciona se há mais pokemons
   Future<void> _loadMorePokemons() async {
     if (isLoading || !hasMore) return;
 
     setState(() {
       isLoading = true;
     });
-//ve se precisa carregar mais
+
     try {
-      List<dynamic> allPokemons = await pokemonServ.PokemonService.fetchAllPokemons();
+     List<Pokemon> allPokemons = (await pokemonServ.PokemonService.fetchAllPokemons()).cast<Pokemon>();
       if (currentOffset < allPokemons.length) {
         int nextOffset = currentOffset + pokemonServ.PokemonService.limit;
         setState(() {
-          pokemons.addAll(allPokemons.sublist(currentOffset, nextOffset) as Iterable<Pokemon>);
+          pokemons.addAll(allPokemons.sublist(currentOffset, nextOffset));
           currentOffset = nextOffset;
           hasMore = currentOffset < allPokemons.length;
         });
@@ -68,14 +114,14 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
         });
       }
     } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao carregar mais Pokémon: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao carregar mais Pokémon: $e')));
     } finally {
       setState(() {
         isLoading = false;
       });
     }
   }
-//cria a lista
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

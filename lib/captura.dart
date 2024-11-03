@@ -5,8 +5,6 @@ import 'package:pokedex/timePok.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Captura extends StatefulWidget {
-  const Captura({super.key});
-
   @override
   State<Captura> createState() => _CapturaState();
 }
@@ -16,7 +14,7 @@ class _CapturaState extends State<Captura> {
   String _pokemonName = '';
   DateTime? _lastSelectedDate;
   DateTime? _lastCapturedDate;
-  List<int> _capturedPokemons = [];
+  List<int> _capturedPokemons = []; // Lista de Pokémons capturados
 
   @override
   void initState() {
@@ -80,7 +78,7 @@ class _CapturaState extends State<Captura> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Você já capturou 6 Pokémon.")));
       return;
     }
-     //Se já capturou o Pokémon no dia
+    // Se já capturou o Pokémon no dia
     if (_lastCapturedDate != null && now.year == _lastCapturedDate!.year && now.day == _lastCapturedDate!.day) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Você já capturou um Pokémon hoje.")));
       return;
@@ -89,8 +87,8 @@ class _CapturaState extends State<Captura> {
     // Adiciona o Pokémon capturado à lista
     if (_pokemonId != null) { // Verifica se o Pokémon ID não é nulo
       setState(() {
-        _capturedPokemons.add(_pokemonId!);
-        _lastCapturedDate = now;
+        _capturedPokemons.add(_pokemonId!); // Adiciona o Pokémon à lista de capturados
+        _lastCapturedDate = now; // Atualiza a data da última captura
       });
       _saveData(); // Salva os dados
 
@@ -98,10 +96,11 @@ class _CapturaState extends State<Captura> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => Time(pokemons: _capturedPokemons),
+          builder: (context) => Time(pokemons: List.from(_capturedPokemons)), // Passa a lista de Pokémons capturados
         ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Pokémon ${_pokemonName} capturado!")));
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Pokémon $_pokemonName capturado!")));
     }
   }
 

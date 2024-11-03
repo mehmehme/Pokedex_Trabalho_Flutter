@@ -26,7 +26,7 @@ class PokemonService {
       }
     } catch (e) {
       print('Erro ao carregar detalhes do Pokémon: $e');
-      throw e; // Re-throw para ser tratado pelo FutureBuilder
+      rethrow; // Re-throw para ser tratado pelo FutureBuilder
     }
   }
   // Função para buscar todos os dados de Pokémon

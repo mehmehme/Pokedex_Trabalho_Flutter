@@ -1,16 +1,17 @@
-// Time.dart
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:pokedex/data/data.dart'; // Ajuste a importação
+import 'package:pokedex/data/data.dart';
 import 'package:pokedex/estilos/fundoPokedex.dart';
 import 'package:pokedex/meuPok.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class Time extends StatefulWidget {
-  final List<int>? pokemons; // Lista de IDs dos Pokémons sem ser obrigatoria, pois o time pode ser vazio
+  final List<int>? pokemons; // Recebe a lista de Pokémon capturados
 
-  Time({
+  const Time({
     super.key,
     this.pokemons,
   });
@@ -24,27 +25,60 @@ class _TimeState extends State<Time> {
   late List<int> _currentPokemons;
 
   @override
-  void initState() {
+  void initState() { 
     super.initState();
-    _currentPokemons = widget.pokemons ?? []; // Use a lista passada ou inicialize como vazia
-    if (_currentPokemons.isEmpty) {
-      _loadCapturedPokemons(); // Carrega do SharedPreferences se a lista estiver vazia
-    }// os pokemons que temos agr
-    pokemonMapFuture = Pokemon.loadPokemonMap(); // Carregar o mapa de Pokémons
+    _currentPokemons = widget.pokemons ?? []; // Garante que não seja nulo
+
+    // Carrega a lista de Pokémon capturados do SharedPreferences
+    _loadCapturedPokemonsFromStorage();
+
+    pokemonMapFuture = _loadCapturedPokemons();
   }
 
-//carrega a sharedpreferences para não perdemos o time
-  Future<void> _loadCapturedPokemons() async {
+  Future<void> _loadCapturedPokemonsFromStorage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _currentPokemons = prefs.getStringList('capturedPokemons')?.map((e) => int.parse(e)).toList() ?? [];
-    });
+    List<String>? capturedList = prefs.getStringList('capturedPokemons');
+
+    if (capturedList != null) {
+      setState(() {
+        _currentPokemons = capturedList.map((e) => int.parse(e)).toList();
+      });
+    }
   }
-//reseta os pokemons que temos
+
+
+  Future<void> _cachePokemonData(Map<int, Pokemon> pokemonMap) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    for (var entry in pokemonMap.entries) {
+      prefs.setString('pokemon_${entry.key}', jsonEncode(entry.value.toJson()));
+    }
+  }
+
+  Future<Map<int, Pokemon>> _loadCapturedPokemons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<int, Pokemon> pokemonMap = {};
+    var connectivityResult = await Connectivity().checkConnectivity();
+    bool isConnected = connectivityResult != ConnectivityResult.none;
+
+    for (int id in _currentPokemons) {
+      String? pokemonData = prefs.getString('pokemon_$id');
+      if (pokemonData != null) {
+        pokemonMap[id] = Pokemon.fromJson(jsonDecode(pokemonData));
+      }
+    }
+
+    if (pokemonMap.isEmpty && isConnected) {
+      List fetchedPokemons = await servicPoke.PokemonService.fetchAllPokemons();
+      pokemonMap = {for (var pokemon in fetchedPokemons) pokemon.id: pokemon};
+      await _cachePokemonData(pokemonMap);
+    }
+
+    return pokemonMap;
+  }
+
   void resetPokemons() {
     setState(() {
-      _currentPokemons.clear(); // Limpa a lista de Pokémons
-      // Se você quiser adicionar lógica para adicionar novos Pokémons, faça aqui
+      _currentPokemons.clear();
     });
   }
 
@@ -99,13 +133,16 @@ class _TimeState extends State<Time> {
                         return Center(child: Text('Erro: ${snapshot.error}'));
                       } else {
                         final pokemonMap = snapshot.data!;
-                        print('Pokemon Map: $pokemonMap');
 
                         return ListView.builder(
                           itemCount: _currentPokemons.length > 6 ? 6 : _currentPokemons.length,
                           itemBuilder: (context, index) {
                             final pokemonId = _currentPokemons[index];
-                            final pokemon = pokemonMap[pokemonId]; // Obtém o Pokémon pelo ID no Map
+                            final pokemon = pokemonMap[pokemonId];
+
+                            if (_currentPokemons.isEmpty) {
+                              return Center(child: Text('Você ainda não capturou nenhum Pokémon.'));
+                            }
 
                             if (pokemon == null) {
                               return ListTile(
@@ -122,25 +159,20 @@ class _TimeState extends State<Time> {
                               ),
                               child: GestureDetector(
                                 onTap: () {
-                                  //o time 'final' no momento que clicamos em um dos membros do time para caso solte o pokemon ele saiba
-                                  //diminuir do numero e atualizar a lista
-                                  final currentTeam = 
-                                  _currentPokemons.map((id) => pokemonMap[id]).where((poke) => 
-                                  poke != null).cast<Pokemon>().toList();
+                                  final currentTeam = _currentPokemons.map((id) => pokemonMap[id]).where((poke) => poke != null).cast<Pokemon>().toList();
 
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => MeuPok(
-                                        pokemonName: pokemon.name, 
+                                        pokemonName: pokemon.name,
                                         pokemonId: pokemonId,
-                                        team: currentTeam,//lista a remover
-                                        onRelease: (id) {//função de remover
-                                        setState(() {
-                                          // Remova o Pokémon do time com base no ID
-                                          _currentPokemons.removeWhere((pokeId) => pokeId == id);
-                                        });
-                                        }
+                                        team: currentTeam,
+                                        onRelease: (id) {
+                                          setState(() {
+                                            _currentPokemons.removeWhere((pokeId) => pokeId == id);
+                                          });
+                                        },
                                       ),
                                     ),
                                   );
@@ -149,14 +181,12 @@ class _TimeState extends State<Time> {
                                   color: const Color.fromARGB(255, 147, 146, 240),
                                   margin: EdgeInsets.symmetric(vertical: 4.0),
                                   child: ListTile(
-                                    leading: pokemon.imageUrl.isNotEmpty 
-                                        ? CachedNetworkImage(
-                                            imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemonId),
-                                            placeholder: (context, url) => const CircularProgressIndicator(),
-                                            errorWidget: (context, url, error) => const Icon(Icons.error),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : SizedBox(width: 50, height: 50, child: Icon(Icons.image_not_supported)),
+                                    leading: CachedNetworkImage(
+                                      imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemon.id),
+                                      placeholder: (context, url) => CircularProgressIndicator(),
+                                      errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
+                                      fit: BoxFit.cover,
+                                    ),
                                     title: Text(
                                       pokemon.name,
                                       style: const TextStyle(

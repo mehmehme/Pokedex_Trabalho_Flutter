@@ -54,7 +54,7 @@ class PokemonService {
     if (isConnected) {
       List allPokemons = await fetchAllPokemons();
       return PokemonLoadResult(
-        pokemons: {for (var pokemon in allPokemons) pokemon.id: pokemon},
+        pokemons: {for (var pokemon in allPokemons) pokemon.id: pokemon}, // Isso deve estar correto
         hasMore: allPokemons.length > limit,
       );
     } else {
@@ -76,13 +76,18 @@ class PokemonService {
       nextOffset = keys.length; // Impede que saia do limite
     }
 
+    // Adicionando log para verificar os IDs
+    print('Current keys: $keys');
+    print('Current Offset: $currentOffset');
+    print('Next Offset: $nextOffset');
+
     return PokemonLoadResult(
       pokemons: {
         for (var id in keys.sublist(currentOffset, nextOffset)) id: currentPokemons[id]!
       },
       hasMore: nextOffset < keys.length,
     );
-  }
+}
 
   // Verifica se há conexão com a internet
   static Future<bool> _checkInternetConnection() async {

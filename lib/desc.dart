@@ -8,12 +8,13 @@ import 'package:pokedex/data/data.dart';
 
 class Descricao extends StatelessWidget {
   final String pokemonName;
-  final int pokemonId;
+  //final int pokemonId;
 
   const Descricao({
     super.key,
     required this.pokemonName,
-    required this.pokemonId, required pokemon,
+    //required this.pokemonId, 
+    required pokemon,
   });
 
   Future<Pokemon> _fetchPokemonData() async {
@@ -32,7 +33,7 @@ class Descricao extends StatelessWidget {
     } else {
       // Conectado, carregue da API e armazene no cache
       Pokemon pokemon = await servicPoke.PokemonService.fetchPokemonDetails(pokemonName);
-      prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
+      //prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
       return pokemon;
     }
   }
@@ -98,7 +99,7 @@ class Descricao extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemonId),
+                            //imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemonId),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.error),
                             fit: BoxFit.cover,

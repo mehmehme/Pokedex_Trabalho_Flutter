@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:pokedex/data/data.dart';
 import 'package:pokedex/data/servicoPoke.dart'; // Importa o serviço atualizado
@@ -105,7 +106,14 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
                   }
 
                   final pokemon = pokemons.values.elementAt(index);
-                  return GestureDetector(
+                  return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 77, 70, 141),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color.fromARGB(255, 39, 53, 100), width: 4),
+                              ),
+                              child: GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
@@ -113,16 +121,36 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
                           builder: (context) => Descricao(
                             pokemon: pokemon, 
                             pokemonName: pokemon.name, 
-                            pokemonId: pokemon.id,),
+                          ),
+                            //pokemonId: pokemon.id,),
                         ),
                       );
                     },
                     child: Card(
-                      child: ListTile(
-                        title: Text(pokemon.name),
-                        leading: Image.network(PokemonService.getPokemonImageUrl(pokemon.id)),
+                      color: const Color.fromARGB(255, 147, 146, 240),
+                                  margin: EdgeInsets.symmetric(vertical: 4.0),
+                                  child: ListTile(
+                                    leading: CachedNetworkImage(
+                                      imageUrl: PokemonService.getPokemonImageUrl(pokemon.id),
+                                      placeholder: (context, url) => CircularProgressIndicator(),
+                                      errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
+                                      fit: BoxFit.cover,
+                                    ),                        
+                        title: Text(
+                                      pokemon.name,
+                                      style: const TextStyle(
+                                        color: Color.fromARGB(255, 255, 255, 255),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      'Tipo: ${pokemon.type.join(', ')}',
+                                      style: TextStyle(color: const Color.fromARGB(255, 255, 255, 255)),
+                                    ),
                       ),
                     ),
+                  ),
                   );
                 },
               ),

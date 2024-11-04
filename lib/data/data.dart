@@ -32,6 +32,7 @@ class Pokemon {
 
   // Método para carregar o mapa de Pokémons
   static Future<Map<int, Pokemon>> loadPokemonMap() async {
+    
     try {
       // Tente carregar os dados do cache primeiro
       final cacheData = await _loadCacheData();
@@ -53,7 +54,7 @@ class Pokemon {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final Map<int, Pokemon> pokemonMap = {
-          for (var pokemon in data)
+          for (var pokemon in data) 
             pokemon['id'] as int: Pokemon.fromMap(pokemon as Map<String, dynamic>),
         };
 
@@ -77,13 +78,11 @@ class Pokemon {
       final List<dynamic> dataList = json.decode(cachedData);
 
       // Verifique se dataList é realmente uma lista
-      if (dataList is List) {
-        return {
-          for (var pokemonData in dataList)
-            (pokemonData['id'] as int): Pokemon.fromMap(pokemonData as Map<String, dynamic>),
-        };
-      }
-    }
+      return {
+        for (var pokemonData in dataList)
+          (pokemonData['id'] as int): Pokemon.fromMap(pokemonData as Map<String, dynamic>),
+      };
+        }
     return {}; // Retorna um mapa vazio se não houver dados no cache
   }
 

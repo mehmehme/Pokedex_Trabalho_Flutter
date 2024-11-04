@@ -22,7 +22,7 @@ class MainApp extends StatelessWidget {
         'tela1': (context) => const Pokedex(),
         'tela2': (context) => Captura(),
         'tela3': (context) => Time(), // Inicialmente vazia, pode ser atualizada
-        'tela4': (context) => const Descricao(pokemonName: '', pokemonId: 0),
+        'tela4': (context) => const Descricao(pokemonName: '', pokemonId: 0, pokemon: 0,),
       },
     );
   }

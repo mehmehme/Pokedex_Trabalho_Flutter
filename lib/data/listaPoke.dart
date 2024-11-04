@@ -14,7 +14,7 @@ class PokemonListScreen extends StatefulWidget {
 }
 
 class _PokemonListScreenState extends State<PokemonListScreen> {
-  List<Pokemon> pokemons = []; //lista de pokemons
+  List<Pokemon> pokemons = []; // lista de pokemons
   int currentOffset = 0;
   bool isLoading = false;
   bool hasMore = true;
@@ -72,19 +72,18 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     List<String>? cachedPokemonsJson = prefs.getStringList('cachedPokemons');
     List<Pokemon> pokemons = [];
 
-  if (cachedPokemonsJson != null) {
+    if (cachedPokemonsJson != null) {
       for (var pokemonJson in cachedPokemonsJson) {
         try {
           // Tente decodificar e criar um Pokémon
           var decodedJson = jsonDecode(pokemonJson);
-          pokemons.add(Pokemon.fromJson(decodedJson));
+          pokemons.add(Pokemon.fromMap(decodedJson)); // Usando fromMap
         } catch (e) {
-          // Se houver um erro, imprima ou trate conforme necessário
           print('Erro ao carregar Pokémon do cache: $e');
         }
       }
-  }
-      return pokemons;
+    }
+    return pokemons;
   }
 
   // Salva os dados dos Pokémon no cache
@@ -93,7 +92,8 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     List<String> pokemonJsonList = pokemonList.map((pokemon) => jsonEncode(pokemon.toJson())).toList();
     await prefs.setStringList('cachedPokemons', pokemonJsonList);
   }
-//carrega e adiciona se há mais pokemons
+
+  // Carrega e adiciona se há mais pokémons
   Future<void> _loadMorePokemons() async {
     if (isLoading || !hasMore) return;
 
@@ -102,13 +102,16 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     });
 
     try {
-     List<Pokemon> allPokemons = (await pokemonServ.PokemonService.fetchAllPokemons()).cast<Pokemon>();
-      if (currentOffset < allPokemons.length) {
+      // Aqui você deve usar a lista já carregada ao invés de buscar tudo novamente
+      if (currentOffset < pokemons.length) {
         int nextOffset = currentOffset + pokemonServ.PokemonService.limit;
+        if (nextOffset > pokemons.length) {
+          nextOffset = pokemons.length; // Impede que saia do limite
+        }
         setState(() {
-          pokemons.addAll(allPokemons.sublist(currentOffset, nextOffset));
+          pokemons.addAll(pokemons.sublist(currentOffset, nextOffset));
           currentOffset = nextOffset;
-          hasMore = currentOffset < allPokemons.length;
+          hasMore = currentOffset < pokemons.length;
         });
       } else {
         setState(() {
@@ -132,8 +135,8 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
         centerTitle: true,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient( 
-              colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 177, 53, 53)], // Cores do gradiente
+            gradient: LinearGradient(
+              colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 177, 53, 53)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -142,12 +145,12 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
         title: const Text(
           'Pokédex',
           style: TextStyle(
-            color: Colors.white,  // Define o texto do título em branco
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
-        )
         ),
+      ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
           if (!isLoading && hasMore && scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
@@ -163,41 +166,41 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
             }
             final pokemon = pokemons[index];
             return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Espaçamento entre os itens
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 77, 70, 141), // Cor de fundo do item
-              borderRadius: BorderRadius.circular(12), // Arredonda as bordas
-              border: Border.all(color: const Color.fromARGB(255, 39, 53, 100), width: 4), // Borda personalizada
-            ),
+                color: const Color.fromARGB(255, 77, 70, 141),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color.fromARGB(255, 39, 53, 100), width: 4),
+              ),
               child: GestureDetector(
                 onTap: () {
                   // Vai para a descrição do pokemon
                   Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Descricao(
-                      pokemonName: pokemon.name, 
-                      pokemonId: pokemon.id,
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Descricao(
+                        pokemonName: pokemon.name,
+                        pokemonId: pokemon.id,
                       ),
-                  ),
+                    ),
                   );
                 },
                 child: Card(
                   color: const Color.fromARGB(255, 147, 146, 240),
                   child: ListTile(
-                    //pega a imaem e nome do pokemon
                     leading: Image.network(pokemonServ.PokemonService.getPokemonImageUrl(pokemon.id)),
-                    title: Text(pokemon.name,
-                    style: const TextStyle(
-                    color: Colors.white, // Cor do texto
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    ),
+                    title: Text(
+                      pokemon.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                     subtitle: Text(
-                      'Tipo: ${pokemon.type.join(', ')}', // Converte a lista de tipos em uma string
+                      'Tipo: ${pokemon.type.join(', ')}',
                       style: const TextStyle(
-                        color: Colors.white, // Cor do texto
+                        color: Colors.white,
                         fontSize: 14,
                       ),
                     ),

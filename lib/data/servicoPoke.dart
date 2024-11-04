@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pokedex/data/data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class PokemonService {
   static const String baseUrl = 'https://raw.githubusercontent.com/fanzeyi/pokemon.json/master/pokedex.json';
   static const int limit = 15;
 
-//pega os detalhes dos pokemons apartir do nome
-    static Future<Pokemon> fetchPokemonDetails(String pokemonName) async {
+  // Pega os detalhes dos Pokémons a partir do nome
+  static Future<Pokemon> fetchPokemonDetails(String pokemonName) async {
     try {
       final response = await http.get(Uri.parse(baseUrl));
       if (response.statusCode == 200) {
@@ -29,6 +30,7 @@ class PokemonService {
       rethrow; // Re-throw para ser tratado pelo FutureBuilder
     }
   }
+
   // Função para buscar todos os dados de Pokémon
   static Future<List> fetchAllPokemons() async {
     try {
@@ -44,6 +46,66 @@ class PokemonService {
     } catch (e) {
       return await _loadCache(); // Carregar do cache em caso de erro
     }
+  }
+
+  // Carrega os Pokémon iniciais
+  static Future<PokemonLoadResult> loadInitialPokemons() async {
+    bool isConnected = await _checkInternetConnection();
+    if (isConnected) {
+      List allPokemons = await fetchAllPokemons();
+      return PokemonLoadResult(
+        pokemons: {for (var pokemon in allPokemons) pokemon.id: pokemon},
+        hasMore: allPokemons.length > limit,
+      );
+    } else {
+      Map<int, Pokemon> cachedPokemons = await _loadPokemonsFromCache();
+      return PokemonLoadResult(
+        pokemons: cachedPokemons,
+        hasMore: false,
+      );
+    }
+  }
+
+  // Carrega mais Pokémons
+  static Future<PokemonLoadResult> loadMorePokemons(Map<int, Pokemon> currentPokemons) async {
+    List<int> keys = currentPokemons.keys.toList();
+    int currentOffset = keys.length; // O offset atual é o número total de Pokémons já carregados
+    int nextOffset = currentOffset + limit;
+
+    if (nextOffset > keys.length) {
+      nextOffset = keys.length; // Impede que saia do limite
+    }
+
+    return PokemonLoadResult(
+      pokemons: {
+        for (var id in keys.sublist(currentOffset, nextOffset)) id: currentPokemons[id]!
+      },
+      hasMore: nextOffset < keys.length,
+    );
+  }
+
+  // Verifica se há conexão com a internet
+  static Future<bool> _checkInternetConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult != ConnectivityResult.none;
+  }
+
+  // Carrega os Pokémon do cache
+  static Future<Map<int, Pokemon>> _loadPokemonsFromCache() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? cachedPokemonsJson = prefs.getStringList('cachedPokemons') ?? [];
+    Map<int, Pokemon> pokemonMap = {};
+
+    for (var pokemonJson in cachedPokemonsJson) {
+      try {
+        var decodedJson = jsonDecode(pokemonJson);
+        Pokemon pokemon = Pokemon.fromMap(decodedJson);
+        pokemonMap[pokemon.id] = pokemon;
+      } catch (e) {
+        print('Erro ao carregar Pokémon do cache: $e');
+      }
+    }
+    return pokemonMap;
   }
 
   // Função para obter a URL da imagem de um Pokémon pelo número
@@ -69,6 +131,7 @@ class PokemonService {
       return []; // Retornar lista vazia se não houver cache
     }
   }
+
   // Cacheia a lista de Pokémon
   static Future<void> _cachePokemons(List<Pokemon> pokemons) async {
     final prefs = await SharedPreferences.getInstance();
@@ -84,7 +147,15 @@ class PokemonService {
       throw Exception('Falha ao carregar Pokémon');
     }
   }
-
 }
 
+// Classe auxiliar para armazenar o resultado do carregamento dos Pokémons
+class PokemonLoadResult {
+  final Map<int, Pokemon> pokemons;
+  final bool hasMore;
 
+  PokemonLoadResult({
+    required this.pokemons,
+    required this.hasMore,
+  });
+}

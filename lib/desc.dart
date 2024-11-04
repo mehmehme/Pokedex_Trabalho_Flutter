@@ -13,7 +13,7 @@ class Descricao extends StatelessWidget {
   const Descricao({
     super.key,
     required this.pokemonName,
-    required this.pokemonId,
+    required this.pokemonId, required pokemon,
   });
 
   Future<Pokemon> _fetchPokemonData() async {

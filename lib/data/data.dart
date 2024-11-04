@@ -19,21 +19,20 @@ class Pokemon {
     required this.base,
   });
 
-  // Método para criar um Pokémon a partir de um mapa evitando erro por ser nulo por que o codigo decidiu
-  //que isso era o maior problema
+  // Método para criar um Pokémon a partir de um mapa
   factory Pokemon.fromMap(Map<String, dynamic> map) {
     return Pokemon(
-      id: map['id'],
-      name: map['name']['english'] ?? 'Nome não disponível', 
-      type: (map['type'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? <String>[], 
-      imageUrl: map['img'] ?? '', 
-      base: map['base'] as Map<String, dynamic>? ?? {}, 
+      id: map['id'] as int,
+      name: map['name']['english'] ?? 'Nome não disponível',
+      type: List<String>.from((map['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
+      imageUrl: map['img'] ?? '',
+      base: map['base'] as Map<String, dynamic>? ?? {},
     );
   }
 
   // Método para carregar o mapa de Pokémons
   static Future<Map<int, Pokemon>> loadPokemonMap() async {
-  try {
+    try {
       // Tente carregar os dados do cache primeiro
       final cacheData = await _loadCacheData();
       if (cacheData.isNotEmpty) {
@@ -54,9 +53,9 @@ class Pokemon {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final Map<int, Pokemon> pokemonMap = {
-        for (var pokemon in data)
-          pokemon['id'] as int: Pokemon.fromMap(pokemon),
-      };
+          for (var pokemon in data)
+            pokemon['id'] as int: Pokemon.fromMap(pokemon as Map<String, dynamic>),
+        };
 
         // Salve no cache para uso offline futuro
         await _saveCacheData(pokemonMap);
@@ -68,39 +67,30 @@ class Pokemon {
     } catch (e) {
       throw Exception('Erro ao carregar dados: $e');
     }
-}
-
-static Future<Map<int, Pokemon>> _loadCacheData() async {
-  final prefs = await SharedPreferences.getInstance();
-  
-  // Tente obter o cache salvo
-  final String? cachedData = prefs.getString('pokemon_cache');
-  
-  if (cachedData != null) {
-    // Decode o JSON e mapeia os dados para Map<int, Pokemon>
-    final List<dynamic> dataList = json.decode(cachedData);
-    
-    // Converte a lista de mapas em um Map<int, Pokemon>
-    final Map<int, Pokemon> pokemonMap = {
-      for (var pokemonData in dataList)
-        (pokemonData['id'] as int): Pokemon.fromMap(pokemonData as Map<String, dynamic>),
-    };
-
-    return pokemonMap;
   }
-  
-  // Retorna um mapa vazio se não houver dados no cache
-  return {};
-}
+
+  static Future<Map<int, Pokemon>> _loadCacheData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? cachedData = prefs.getString('pokemon_cache');
+
+    if (cachedData != null) {
+      final List<dynamic> dataList = json.decode(cachedData);
+
+      // Verifique se dataList é realmente uma lista
+      if (dataList is List) {
+        return {
+          for (var pokemonData in dataList)
+            (pokemonData['id'] as int): Pokemon.fromMap(pokemonData as Map<String, dynamic>),
+        };
+      }
+    }
+    return {}; // Retorna um mapa vazio se não houver dados no cache
+  }
 
   static Future<void> _saveCacheData(Map<int, Pokemon> pokemonMap) async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Converte o mapa de Pokémon em uma lista de mapas (para poder converter para JSON)
     final List<Map<String, dynamic>> pokemonList = 
         pokemonMap.values.map((pokemon) => pokemon.toJson()).toList();
-    
-    // Salva a lista como uma string JSON
     await prefs.setString('pokemon_cache', json.encode(pokemonList));
   }
 
@@ -116,11 +106,11 @@ static Future<Map<int, Pokemon>> _loadCacheData() async {
   // Método para converter o Pokémon em JSON
   factory Pokemon.fromJson(Map<String, dynamic> json) {
     return Pokemon(
-      id: json['id'],
-      name: json['name']['english'] ?? 'Nome não disponível', 
-      type: (json['type'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? <String>[], 
-      imageUrl: servicPoke.PokemonService.getPokemonImageUrl(json['id']), 
-      base: json['base'] as Map<String, dynamic>? ?? {}, 
+      id: json['id'] as int,
+      name: json['name']['english'] ?? 'Nome não disponível',
+      type: List<String>.from((json['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
+      imageUrl: servicPoke.PokemonService.getPokemonImageUrl(json['id'] as int), // Certifique-se de que id é um int
+      base: json['base'] as Map<String, dynamic>? ?? {},
     );
   }
 
@@ -132,7 +122,7 @@ static Future<Map<int, Pokemon>> _loadCacheData() async {
         'english': name,
       },
       'type': type,
-      'img': imageUrl, // Certifique-se de que este é o campo correto
+      'img': imageUrl,
       'base': base,
     };
   }

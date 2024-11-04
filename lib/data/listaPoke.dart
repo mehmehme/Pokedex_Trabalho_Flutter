@@ -14,7 +14,7 @@ class PokemonListScreen extends StatefulWidget {
 }
 
 class _PokemonListScreenState extends State<PokemonListScreen> {
-  List<Pokemon> pokemons = []; // lista de pokemons
+  Map<int, Pokemon> pokemons = {}; // Altera para Map<int, Pokemon>
   int currentOffset = 0;
   bool isLoading = false;
   bool hasMore = true;
@@ -39,13 +39,13 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
         List<Pokemon> allPokemons = (await pokemonServ.PokemonService.fetchAllPokemons()).cast<Pokemon>();
         await _cachePokemonData(allPokemons);
         setState(() {
-          pokemons = allPokemons.sublist(0, pokemonServ.PokemonService.limit);
+          pokemons = {for (var pokemon in allPokemons) pokemon.id: pokemon}; // Mapeia os Pokémons
           currentOffset = pokemonServ.PokemonService.limit;
           hasMore = currentOffset < allPokemons.length;
         });
       } else {
         // Carregar do cache
-        List<Pokemon> cachedPokemons = await _loadPokemonsFromCache();
+        Map<int, Pokemon> cachedPokemons = await _loadPokemonsFromCache();
         setState(() {
           pokemons = cachedPokemons;
           hasMore = false; // Considera que o cache é o conjunto completo de dados offline
@@ -67,17 +67,18 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
   }
 
   // Carrega os Pokémon do cache
-  Future<List<Pokemon>> _loadPokemonsFromCache() async {
+  Future<Map<int, Pokemon>> _loadPokemonsFromCache() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? cachedPokemonsJson = prefs.getStringList('cachedPokemons');
-    List<Pokemon> pokemons = [];
+    Map<int, Pokemon> pokemons = {};
 
     if (cachedPokemonsJson != null) {
       for (var pokemonJson in cachedPokemonsJson) {
         try {
           // Tente decodificar e criar um Pokémon
           var decodedJson = jsonDecode(pokemonJson);
-          pokemons.add(Pokemon.fromMap(decodedJson)); // Usando fromMap
+          Pokemon pokemon = Pokemon.fromMap(decodedJson); // Usando fromMap
+          pokemons[pokemon.id] = pokemon; // Mapeia o Pokémon pelo ID
         } catch (e) {
           print('Erro ao carregar Pokémon do cache: $e');
         }
@@ -93,7 +94,7 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     await prefs.setStringList('cachedPokemons', pokemonJsonList);
   }
 
-  // Carrega e adiciona se há mais pokémons
+  // Carrega e adiciona se há mais Pokémons
   Future<void> _loadMorePokemons() async {
     if (isLoading || !hasMore) return;
 
@@ -102,16 +103,20 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     });
 
     try {
-      // Aqui você deve usar a lista já carregada ao invés de buscar tudo novamente
+      // Aqui você deve usar o Map já carregado ao invés de buscar tudo novamente
       if (currentOffset < pokemons.length) {
+        List<int> keys = pokemons.keys.toList();
         int nextOffset = currentOffset + pokemonServ.PokemonService.limit;
-        if (nextOffset > pokemons.length) {
-          nextOffset = pokemons.length; // Impede que saia do limite
+        if (nextOffset > keys.length) {
+          nextOffset = keys.length; // Impede que saia do limite
         }
+        // Atualiza os Pokémons visíveis
         setState(() {
-          pokemons.addAll(pokemons.sublist(currentOffset, nextOffset));
+          pokemons = {
+            for (var id in keys.sublist(currentOffset, nextOffset)) id: pokemons[id]!
+          };
           currentOffset = nextOffset;
-          hasMore = currentOffset < pokemons.length;
+          hasMore = currentOffset < keys.length;
         });
       } else {
         setState(() {
@@ -164,7 +169,7 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
             if (index == pokemons.length) {
               return const Center(child: CircularProgressIndicator());
             }
-            final pokemon = pokemons[index];
+            final pokemon = pokemons.values.elementAt(index); // Pega o Pokémon correspondente
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -174,7 +179,7 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
               ),
               child: GestureDetector(
                 onTap: () {
-                  // Vai para a descrição do pokemon
+                  // Vai para a descrição do Pokémon
                   Navigator.push(
                     context,
                     MaterialPageRoute(

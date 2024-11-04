@@ -68,24 +68,23 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
 
   // Carrega os Pokémon do cache
   Future<Map<int, Pokemon>> _loadPokemonsFromCache() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? cachedPokemonsJson = prefs.getStringList('cachedPokemons');
-    Map<int, Pokemon> pokemons = {};
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<String> cachedPokemonsJson = prefs.getStringList('cachedPokemons') ?? []; // Use o operador null-coalescing
 
-    if (cachedPokemonsJson != null) {
-      for (var pokemonJson in cachedPokemonsJson) {
-        try {
-          // Tente decodificar e criar um Pokémon
-          var decodedJson = jsonDecode(pokemonJson);
-          Pokemon pokemon = Pokemon.fromMap(decodedJson); // Usando fromMap
-          pokemons[pokemon.id] = pokemon; // Mapeia o Pokémon pelo ID
-        } catch (e) {
-          print('Erro ao carregar Pokémon do cache: $e');
-        }
-      }
+  Map<int, Pokemon> pokemons = {};
+
+  for (var pokemonJson in cachedPokemonsJson) {
+    try {
+      // Tente decodificar e criar um Pokémon
+      var decodedJson = jsonDecode(pokemonJson);
+      Pokemon pokemon = Pokemon.fromMap(decodedJson); // Usando fromMap
+      pokemons[pokemon.id] = pokemon; // Mapeia o Pokémon pelo ID
+    } catch (e) {
+      print('Erro ao carregar Pokémon do cache: $e');
     }
-    return pokemons;
   }
+  return pokemons;
+}
 
   // Salva os dados dos Pokémon no cache
   Future<void> _cachePokemonData(List<Pokemon> pokemonList) async {

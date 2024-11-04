@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Pokemon {
   final int id;
@@ -22,27 +24,92 @@ class Pokemon {
   factory Pokemon.fromMap(Map<String, dynamic> map) {
     return Pokemon(
       id: map['id'],
-      name: map['name']['english'] ?? 'Nome não disponível', // Use um valor padrão se o nome for nulo
-      type: List<String>.from(map['type'] ?? []), // Use uma lista vazia se o tipo for nulo
-      imageUrl: map['img'] ?? '', // Use uma string vazia se a imagem for nula
-      base: map['base'] as Map<String, dynamic>? ?? {}, // Use um mapa vazio se base for nulo
+      name: map['name']['english'] ?? 'Nome não disponível', 
+      type: (map['type'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? <String>[], 
+      imageUrl: map['img'] ?? '', 
+      base: map['base'] as Map<String, dynamic>? ?? {}, 
     );
   }
 
   // Método para carregar o mapa de Pokémons
   static Future<Map<int, Pokemon>> loadPokemonMap() async {
-    final url = 'https://raw.githubusercontent.com/fanzeyi/pokemon.json/master/pokedex.json'; // URL do seu JSON
+  try {
+      // Tente carregar os dados do cache primeiro
+      final cacheData = await _loadCacheData();
+      if (cacheData.isNotEmpty) {
+        return cacheData; // Se o cache não estiver vazio, use-o
+      }
 
-    final response = await http.get(Uri.parse(url));
+      // Verifique se há conectividade de rede
+      final hasInternet = await _hasInternetConnection();
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return {
+      if (!hasInternet) {
+        throw Exception("Sem conexão com a internet e cache vazio");
+      }
+
+      // Caso contrário, tente carregar da URL
+      final url = 'https://raw.githubusercontent.com/fanzeyi/pokemon.json/master/pokedex.json';
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final Map<int, Pokemon> pokemonMap = {
         for (var pokemon in data)
-          pokemon['id']: Pokemon.fromMap(pokemon), // Mapeia cada Pokémon pelo seu ID
+          pokemon['id'] as int: Pokemon.fromMap(pokemon),
       };
-    } else {
-      throw Exception('Falha ao carregar Pokémons');
+
+        // Salve no cache para uso offline futuro
+        await _saveCacheData(pokemonMap);
+
+        return pokemonMap;
+      } else {
+        throw Exception('Falha ao carregar Pokémons da internet');
+      }
+    } catch (e) {
+      throw Exception('Erro ao carregar dados: $e');
+    }
+}
+
+static Future<Map<int, Pokemon>> _loadCacheData() async {
+  final prefs = await SharedPreferences.getInstance();
+  
+  // Tente obter o cache salvo
+  final String? cachedData = prefs.getString('pokemon_cache');
+  
+  if (cachedData != null) {
+    // Decode o JSON e mapeia os dados para Map<int, Pokemon>
+    final List<dynamic> dataList = json.decode(cachedData);
+    
+    // Converte a lista de mapas em um Map<int, Pokemon>
+    final Map<int, Pokemon> pokemonMap = {
+      for (var pokemonData in dataList)
+        (pokemonData['id'] as int): Pokemon.fromMap(pokemonData as Map<String, dynamic>),
+    };
+
+    return pokemonMap;
+  }
+  
+  // Retorna um mapa vazio se não houver dados no cache
+  return {};
+}
+
+  static Future<void> _saveCacheData(Map<int, Pokemon> pokemonMap) async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Converte o mapa de Pokémon em uma lista de mapas (para poder converter para JSON)
+    final List<Map<String, dynamic>> pokemonList = 
+        pokemonMap.values.map((pokemon) => pokemon.toJson()).toList();
+    
+    // Salva a lista como uma string JSON
+    await prefs.setString('pokemon_cache', json.encode(pokemonList));
+  }
+
+  static Future<bool> _hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
     }
   }
 
@@ -50,10 +117,10 @@ class Pokemon {
   factory Pokemon.fromJson(Map<String, dynamic> json) {
     return Pokemon(
       id: json['id'],
-      name: json['name']['english'] ?? 'Nome não disponível', // Verificação para evitar nulo
-      type: List<String>.from(json['type'] ?? []), // Verificação para evitar nulo
-      imageUrl: servicPoke.PokemonService.getPokemonImageUrl(json['id']), // URL da imagem
-      base: json['base'] as Map<String, dynamic>? ?? {}, // Use um mapa vazio se base for nulo
+      name: json['name']['english'] ?? 'Nome não disponível', 
+      type: (json['type'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? <String>[], 
+      imageUrl: servicPoke.PokemonService.getPokemonImageUrl(json['id']), 
+      base: json['base'] as Map<String, dynamic>? ?? {}, 
     );
   }
 

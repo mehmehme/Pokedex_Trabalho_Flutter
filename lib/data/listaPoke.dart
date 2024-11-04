@@ -18,10 +18,12 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
   int currentOffset = 0;
   bool isLoading = false;
   bool hasMore = true;
+  late Future<Map<int, Pokemon>> futurePokemonMap;
 
   @override
   void initState() {
     super.initState();
+    futurePokemonMap = Pokemon.loadPokemonMap();
     _loadInitialPokemons();
   }
 

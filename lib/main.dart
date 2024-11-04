@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pokedex/desc.dart';
 import 'package:pokedex/estilos/botoes.dart';
 import 'pokedex.dart';
 import 'timePok.dart';
@@ -22,7 +21,6 @@ class MainApp extends StatelessWidget {
         'tela1': (context) => const Pokedex(),
         'tela2': (context) => Captura(),
         'tela3': (context) => Time(), // Inicialmente vazia, pode ser atualizada
-        'tela4': (context) => const Descricao(pokemonName: '', pokemonId: 0, pokemon: 0,),
       },
     );
   }

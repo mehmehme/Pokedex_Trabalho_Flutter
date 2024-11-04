@@ -7,14 +7,11 @@ import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
 import 'package:pokedex/data/data.dart';
 
 class Descricao extends StatelessWidget {
-  final String pokemonName;
-  //final int pokemonId;
+  final Pokemon pokemon;
 
   const Descricao({
     super.key,
-    required this.pokemonName,
-    //required this.pokemonId, 
-    required pokemon,
+    required this.pokemon,
   });
 
   Future<Pokemon> _fetchPokemonData() async {
@@ -24,7 +21,7 @@ class Descricao extends StatelessWidget {
     
     if (connectivityResult == ConnectivityResult.none) {
       // Sem internet, carregue do cache
-      String? cachedData = prefs.getString('pokemon_$pokemonId');
+      String? cachedData = prefs.getString('pokemon_${pokemon.id}');
       if (cachedData != null) {
         return Pokemon.fromJson(jsonDecode(cachedData));
       } else {
@@ -32,8 +29,8 @@ class Descricao extends StatelessWidget {
       }
     } else {
       // Conectado, carregue da API e armazene no cache
-      Pokemon pokemon = await servicPoke.PokemonService.fetchPokemonDetails(pokemonName);
-      //prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
+      Pokemon? pokemonDetails = await servicPoke.PokemonService.fetchPokemonDetails(pokemon.name);
+      prefs.setString('pokemon_${pokemonDetails.id}', jsonEncode(pokemonDetails.toJson()));
       return pokemon;
     }
   }
@@ -99,7 +96,7 @@ class Descricao extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            //imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemonId),
+                            imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemon.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.error),
                             fit: BoxFit.cover,

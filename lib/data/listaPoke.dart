@@ -1,17 +1,18 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:pokedex/data/data.dart';
-import 'package:pokedex/data/servicoPoke.dart'; // Importa o serviço atualizado
+import 'package:pokedex/data/servicoPoke.dart';
 import 'package:pokedex/desc.dart';
 
-class PokemonListScreen extends StatefulWidget {
-  const PokemonListScreen({super.key});
+class ListaPoke extends StatefulWidget {
+  const ListaPoke({super.key});
 
   @override
-  _PokemonListScreenState createState() => _PokemonListScreenState();
+  _ListaPokeState createState() => _ListaPokeState();
 }
 
-class _PokemonListScreenState extends State<PokemonListScreen> {
+class _ListaPokeState extends State<ListaPoke> {
   Map<int, Pokemon> pokemons = {};
   bool isLoading = false;
   bool hasMore = true;
@@ -22,19 +23,40 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     _loadInitialPokemons();
   }
 
+  Future<bool> hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _loadInitialPokemons() async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      var result = await PokemonService.loadInitialPokemons();
-      setState(() {
-        pokemons = result.pokemons;
-        hasMore = result.hasMore;
-      });
+      if (await hasInternetConnection()) {
+        // Carrega os Pokémons da API e salva no cache
+        var result = await PokemonService.loadInitialPokemons();
+        setState(() {
+          pokemons = result.pokemons;
+          hasMore = result.hasMore;
+        });
+      } else {
+        // Carrega os Pokémons do cache
+        var cachedPokemons = await PokemonService.loadCachedPokemons();
+        setState(() {
+          pokemons = cachedPokemons;
+          hasMore = cachedPokemons.isNotEmpty;
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao carregar Pokémon: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar Pokémon: $e')),
+      );
     } finally {
       setState(() {
         isLoading = false;
@@ -42,7 +64,7 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
     }
   }
 
-  // Carrega e adiciona se há mais Pokémons
+
   Future<void> _loadMorePokemons() async {
     if (isLoading || !hasMore) return;
 
@@ -57,7 +79,9 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
         hasMore = result.hasMore;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao carregar mais Pokémon: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar mais Pokémon: $e')),
+      );
     } finally {
       setState(() {
         isLoading = false;
@@ -99,7 +123,7 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
         child: isLoading && pokemons.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : ListView.builder(
-                itemCount: pokemons.length + (hasMore ? 1 : 0), // Adiciona um item para o carregamento
+                itemCount: pokemons.length + (hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == pokemons.length) {
                     return const Center(child: CircularProgressIndicator());
@@ -107,50 +131,50 @@ class _PokemonListScreenState extends State<PokemonListScreen> {
 
                   final pokemon = pokemons.values.elementAt(index);
                   return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 77, 70, 141),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color.fromARGB(255, 39, 53, 100), width: 4),
-                              ),
-                              child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Descricao(
-                            pokemon: pokemon, 
-                            pokemonName: pokemon.name, 
+                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 77, 70, 141),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color.fromARGB(255, 39, 53, 100), width: 4),
+                    ),
+                    child: GestureDetector(
+                      onTap: () async {
+                        Pokemon fullPokemon = pokemon;
+                        if (!await hasInternetConnection()) {
+                          fullPokemon = await PokemonService.fetchPokemonDetails(pokemon.id as String); // Carrega detalhes do cache
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Descricao(pokemon: fullPokemon),
                           ),
-                            //pokemonId: pokemon.id,),
+                        );
+                      },
+                      child: Card(
+                        color: const Color.fromARGB(255, 147, 146, 240),
+                        margin: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: ListTile(
+                          leading: CachedNetworkImage(
+                            imageUrl: PokemonService.getPokemonImageUrl(pokemon.id),
+                            placeholder: (context, url) => const CircularProgressIndicator(),
+                            errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
+                            fit: BoxFit.cover,
+                          ),
+                          title: Text(
+                            pokemon.name,
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 255, 255, 255),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Tipo: ${pokemon.type.join(', ')}',
+                            style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                          ),
                         ),
-                      );
-                    },
-                    child: Card(
-                      color: const Color.fromARGB(255, 147, 146, 240),
-                                  margin: EdgeInsets.symmetric(vertical: 4.0),
-                                  child: ListTile(
-                                    leading: CachedNetworkImage(
-                                      imageUrl: PokemonService.getPokemonImageUrl(pokemon.id),
-                                      placeholder: (context, url) => CircularProgressIndicator(),
-                                      errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
-                                      fit: BoxFit.cover,
-                                    ),                        
-                        title: Text(
-                                      pokemon.name,
-                                      style: const TextStyle(
-                                        color: Color.fromARGB(255, 255, 255, 255),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      'Tipo: ${pokemon.type.join(', ')}',
-                                      style: TextStyle(color: const Color.fromARGB(255, 255, 255, 255)),
-                                    ),
                       ),
                     ),
-                  ),
                   );
                 },
               ),

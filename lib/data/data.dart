@@ -51,6 +51,7 @@ class Pokemon {
       final url = 'https://raw.githubusercontent.com/fanzeyi/pokemon.json/master/pokedex.json';
       final response = await http.get(Uri.parse(url));
 
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final Map<int, Pokemon> pokemonMap = {

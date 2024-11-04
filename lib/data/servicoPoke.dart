@@ -8,6 +8,7 @@ class PokemonService {
   static const String baseUrl = 'https://raw.githubusercontent.com/fanzeyi/pokemon.json/master/pokedex.json';
   static const int limit = 15;
 
+
   // Pega os detalhes dos Pokémons a partir do nome
   static Future<Pokemon> fetchPokemonDetails(String pokemonName) async {
     try {
@@ -50,6 +51,8 @@ class PokemonService {
 
   // Carrega os Pokémon iniciais
   static Future<PokemonLoadResult> loadInitialPokemons() async {
+    
+
     bool isConnected = await _checkInternetConnection();
     if (isConnected) {
       List allPokemons = await fetchAllPokemons();
@@ -97,20 +100,19 @@ class PokemonService {
 
   // Carrega os Pokémon do cache
   static Future<Map<int, Pokemon>> _loadPokemonsFromCache() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? cachedPokemonsJson = prefs.getStringList('cachedPokemons') ?? [];
-    Map<int, Pokemon> pokemonMap = {};
 
-    for (var pokemonJson in cachedPokemonsJson) {
-      try {
-        var decodedJson = jsonDecode(pokemonJson);
-        Pokemon pokemon = Pokemon.fromMap(decodedJson);
-        pokemonMap[pokemon.id] = pokemon;
-      } catch (e) {
-        print('Erro ao carregar Pokémon do cache: $e');
-      }
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? cachedData = prefs.getString('cachedPokemons');
+
+    if (cachedData != null) {
+      List<dynamic> jsonData = jsonDecode(cachedData);
+      Map<int, Pokemon> pokemons = {
+        for (var data in jsonData) data['id']: Pokemon.fromJson(data)
+      };
+      return pokemons;
+    } else {
+      return {}; // Retorna vazio se o cache não existir
     }
-    return pokemonMap;
   }
 
   // Função para obter a URL da imagem de um Pokémon pelo número
@@ -118,6 +120,24 @@ class PokemonService {
     final String formattedId = id.toString().padLeft(3, '0');
     return 'https://raw.githubusercontent.com/fanzeyi/pokemon.json/master/images/$formattedId.png';
   }
+
+  static Future<Map<int, Pokemon>> loadCachedPokemons() async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      Map<int, Pokemon> cachedPokemons = {};
+
+      // Aqui você pode usar um padrão de nome para armazenar Pokémons em cache
+      for (String key in prefs.getKeys()) {
+        if (key.startsWith('pokemon_')) {
+          String? cachedData = prefs.getString(key);
+          if (cachedData != null) {
+            Pokemon pokemon = Pokemon.fromJson(jsonDecode(cachedData));
+            cachedPokemons[pokemon.id] = pokemon; // Adiciona ao mapa de Pokémons
+          }
+        }
+      }
+
+      return cachedPokemons;
+    }
 
   // Função para salvar dados em cache
   static Future<void> _saveCache(String data) async {

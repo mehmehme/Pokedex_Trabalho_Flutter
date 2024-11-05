@@ -18,6 +18,9 @@ class PokemonNetwork {
       List<dynamic> data = jsonDecode(response.body);
       List<Pokemon> pokemons = NetMapa.fromJsonList(data); // Usando o mapper
 
+      for (var json in data) {
+            pokemons.add(Pokemon.fromJson(json));
+      }
       // Carrega a imagem para cada Pokémon
       for (var pokemon in pokemons) {
         pokemon.img = await _fetchPokemonImage(pokemon.id);

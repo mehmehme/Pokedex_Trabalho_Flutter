@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:pokedex/estilos/botoes.dart';
-import 'package:pokedex/timePok.dart';
+import 'package:pokedex/telas/(back)timePok.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Captura extends StatefulWidget {
@@ -24,15 +24,12 @@ class _CapturaState extends State<Captura> {
 
   // Carrega os Pokémon capturados e as datas
   Future<void> _loadData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _lastSelectedDate = DateTime.tryParse(prefs.getString('lastSelectedDate') ?? '');
-      _lastCapturedDate = DateTime.tryParse(prefs.getString('lastCapturedDate') ?? '');
-      _capturedPokemons = prefs.getStringList('capturedPokemons')?.map((e) => int.parse(e)).toList() ?? [];
-      _pokemonId = prefs.getInt('pokemonId');
-      _pokemonName = prefs.getString('pokemonName') ?? '';
-    });
-  }
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  setState(() {
+    _pokemonId = prefs.getInt('pokemonId');
+    _pokemonName = prefs.getString('pokemonName') ?? '';
+  });
+}
 
   // Salva o Pokémon escolhido e as datas
   Future<void> _saveData() async {
@@ -96,7 +93,7 @@ class _CapturaState extends State<Captura> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => Time(pokemons: List.from(_capturedPokemons)), // Passa a lista de Pokémons capturados
+          builder: (context) => Time(pokemons: List<int>.from(_capturedPokemons)), // Passa a lista de Pokémons capturados
         ),
       );
 

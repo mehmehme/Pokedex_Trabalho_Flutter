@@ -22,7 +22,8 @@ class PokemonRepository {
     // Se o cache estiver vazio, busca da internet e armazena no cache
     List<Pokemon> fetchedPokemons = await pokemonNetwork.fetchPokemonList();
     for (var pokemon in fetchedPokemons) {
-      await pokemonDao.insertPokemon(PokeMapa.toMap(pokemon));
+      // Mapeia o Pokémon para um Map e insere no banco de dados
+      await pokemonDao.insertPokemon(pokemon);
     }
 
     return fetchedPokemons;

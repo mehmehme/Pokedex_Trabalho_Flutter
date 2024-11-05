@@ -3,8 +3,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/modelo_data.dart';
-import '../repositorio/reposi_poke.dart';
+import '../../data/modelo_data.dart';
+import '../../repositorio/reposi_poke.dart';
 
 class Descricao extends StatelessWidget {
   final Pokemon pokemon;

@@ -20,7 +20,7 @@ class Pokemon {
 
   factory Pokemon.fromJson(Map<String, dynamic> json) {
     return Pokemon(
-      id: int.parse(json['id'].toString()),
+      id: json['id'] as int,
       name: json['name']['english'] ?? 'Nome não disponível',
       type: List<String>.from((json['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
       img: null, 
@@ -47,10 +47,10 @@ class Pokemon {
   }
 }
 
-class PokeMapa{
+class PokeMapeando{
   static Pokemon fromJson(Map<String, dynamic> json, Uint8List? img) {
     return Pokemon(
-      id: int.parse(json['id'].toString()),
+      id: json['id'] as int,
       name: json['name']['english'] ?? 'Nome não disponível',
       type: List<String>.from((json['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
       img: json['img'],

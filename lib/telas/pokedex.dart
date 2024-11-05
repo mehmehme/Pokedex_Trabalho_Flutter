@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pokedex/listaPoke.dart';
+import 'package:pokedex/telas/listaPoke.dart';
 import 'package:pokedex/estilos/fundoPokedex.dart';
 
 

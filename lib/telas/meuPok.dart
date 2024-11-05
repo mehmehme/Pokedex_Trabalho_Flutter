@@ -23,7 +23,8 @@ class MeuPok extends StatelessWidget {
   Future<Pokemon> _fetchPokemonData() async {
     return await pokemonRepository.getPokemons().then((pokemons) {
       // Filtrar o Pokémon específico da lista
-      return pokemons.firstWhere((p) => p.id == pokemonId);
+      return pokemons.firstWhere((p) => p.id == pokemonId, 
+      orElse: () => throw Exception('Pokémon não encontrado'));
     });
   }
 
@@ -57,11 +58,14 @@ class MeuPok extends StatelessWidget {
         future: _fetchPokemonData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          } else {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Erro: ${snapshot.error}'));
+        } else if (!snapshot.hasData) {
+          return const Center(child: Text('Pokémon não encontrado.'));
+        } else {
             final pokemon = snapshot.data!;
+
             return Stack(
               children: [
                 Image.asset(

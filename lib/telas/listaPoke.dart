@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:pokedex/desc.dart';
+import 'package:pokedex/telas/desc.dart';
 import 'package:provider/provider.dart';
 
-import '../data/modelo_data.dart';
-import '../repositorio/reposi_poke.dart';
+import '../../data/modelo_data.dart';
+import '../../repositorio/reposi_poke.dart';
 
 class ListaPoke extends StatefulWidget {
   const ListaPoke({super.key});

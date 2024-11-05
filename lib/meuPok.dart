@@ -21,20 +21,20 @@ class MeuPok extends StatelessWidget {
   });
 
   Future<Pokemon> _fetchPokemonData() async {
-    // Verifica a conectividade
-    var connectivityResult = await Connectivity().checkConnectivity();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    
-    if (connectivityResult == ConnectivityResult.none) {
-      // Sem internet, carregue do cache
-      String? cachedData = prefs.getString('pokemon_$pokemonId');
-      if (cachedData != null) {
-        return Pokemon.fromJson(jsonDecode(cachedData));
-      } else {
-        throw Exception('Dados do Pokémon não encontrados no cache.');
-      }
+  // Verifica a conectividade
+  var connectivityResult = await Connectivity().checkConnectivity();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  
+  if (connectivityResult == ConnectivityResult.none) {
+    // Sem internet, carregue do cache
+    String? cachedData = prefs.getString('pokemon_$pokemonId');
+    if (cachedData != null) {
+      return Pokemon.fromJson(jsonDecode(cachedData));
     } else {
-      // Conectado, carregue da API e armazene no cache
+      throw Exception('Dados do Pokémon não encontrados no cache.');
+    }
+  } else {
+    // Conectado, carregue da API e armazene no cache
       Pokemon pokemon = await servicPoke.PokemonService.fetchPokemonDetails(pokemonName);
       prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
       return pokemon;

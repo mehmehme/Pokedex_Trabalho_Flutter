@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:pokedex/dao/pokemon_dao.dart';
 import 'package:pokedex/estilos/botoes.dart';
+import 'package:provider/provider.dart';
 import 'pokedex.dart';
 import 'timePok.dart';
 import 'captura.dart';
 import 'estilos/fundoPoke.dart';
+import '../repositorio/reposi_poke.dart';
+import '../network/net_poke.dart';
 
 void main() {
   runApp(MainApp());
@@ -14,7 +18,22 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MultiProvider(
+      providers: [
+        Provider<PokemonDao>(
+          create: (_) => PokemonDao(),
+        ),
+        Provider<PokemonNetwork>(
+          create: (_) => PokemonNetwork(),
+        ),
+        Provider<PokemonRepository>(
+          create: (context) => PokemonRepository(
+            pokemonDao: Provider.of<PokemonDao>(context, listen: false),
+            pokemonNetwork: Provider.of<PokemonNetwork>(context, listen: false),
+          ),
+        ),
+      ],
+      child: MaterialApp(
       debugShowCheckedModeBanner: false,
       home: const MyApp(),
       routes: {
@@ -22,6 +41,7 @@ class MainApp extends StatelessWidget {
         'tela2': (context) => Captura(),
         'tela3': (context) => Time(), // Inicialmente vazia, pode ser atualizada
       },
+    ),
     );
   }
 }
@@ -65,7 +85,7 @@ class _MyAppState extends State<MyApp> {
                         foreground: Paint()
                           ..style = PaintingStyle.stroke
                           ..strokeWidth = 15
-                          ..color = const Color.fromARGB(255, 99, 22, 22),
+                          ..color = const Color.fromARGB(255, 221, 155, 14),
                       ),
                     ),
                     const Text(

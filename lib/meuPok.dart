@@ -1,16 +1,15 @@
-import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pokedex/data/data.dart';
-import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
+import 'package:pokedex/data/modelo_data.dart';
+import 'package:pokedex/repositorio/reposi_poke.dart';
+import 'package:provider/provider.dart';
 
 class MeuPok extends StatelessWidget {
   final String pokemonName;
   final int pokemonId;
   final List<Pokemon> team;
   final Function(int) onRelease;
+  final PokemonRepository pokemonRepository; // Injetar o repositório
 
   const MeuPok({
     super.key,
@@ -18,27 +17,14 @@ class MeuPok extends StatelessWidget {
     required this.pokemonId,
     required this.team,
     required this.onRelease,
+    required this.pokemonRepository, // Adicionar o repositório ao construtor
   });
 
   Future<Pokemon> _fetchPokemonData() async {
-  // Verifica a conectividade
-  var connectivityResult = await Connectivity().checkConnectivity();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  
-  if (connectivityResult == ConnectivityResult.none) {
-    // Sem internet, carregue do cache
-    String? cachedData = prefs.getString('pokemon_$pokemonId');
-    if (cachedData != null) {
-      return Pokemon.fromJson(jsonDecode(cachedData));
-    } else {
-      throw Exception('Dados do Pokémon não encontrados no cache.');
-    }
-  } else {
-    // Conectado, carregue da API e armazene no cache
-      Pokemon pokemon = await servicPoke.PokemonService.fetchPokemonDetails(pokemonName);
-      prefs.setString('pokemon_$pokemonId', jsonEncode(pokemon.toJson()));
-      return pokemon;
-    }
+    return await pokemonRepository.getPokemons().then((pokemons) {
+      // Filtrar o Pokémon específico da lista
+      return pokemons.firstWhere((p) => p.id == pokemonId);
+    });
   }
 
   @override
@@ -49,7 +35,10 @@ class MeuPok extends StatelessWidget {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 177, 53, 53)],
+              colors: [
+                Color.fromARGB(255, 72, 58, 77),
+                Color.fromARGB(255, 72, 58, 77),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -66,7 +55,7 @@ class MeuPok extends StatelessWidget {
       ),
       body: FutureBuilder<Pokemon>(
         future: _fetchPokemonData(),
-        builder: (context, snapshot) {//espera a conecção
+        builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
@@ -99,7 +88,7 @@ class MeuPok extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemonId),
+                            imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.error),
                             fit: BoxFit.cover,
@@ -145,12 +134,12 @@ class MeuPok extends StatelessWidget {
                               ),
                             ),
                             const Divider(),
-                            for (var key in pokemon.base.keys)
+                            for (var key in pokemon.base!.keys)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '$key: ${pokemon.base[key]}',
+                                    '$key: ${pokemon.base![key]}',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -159,7 +148,7 @@ class MeuPok extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   LinearProgressIndicator(
-                                    value: pokemon.base[key] / 100,
+                                    value: pokemon.base![key] / 100,
                                     backgroundColor: Colors.white54,
                                     color: Colors.white,
                                   ),
@@ -168,8 +157,10 @@ class MeuPok extends StatelessWidget {
                             const SizedBox(height: 8),
                             OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                fixedSize: Size(MediaQuery.of(context).size.width * 0.6,
-                                    MediaQuery.of(context).size.height * 0.1),
+                                fixedSize: Size(
+                                  MediaQuery.of(context).size.width * 0.6,
+                                  MediaQuery.of(context).size.height * 0.1,
+                                ),
                                 backgroundColor: const Color.fromARGB(255, 167, 57, 57),
                                 side: const BorderSide(
                                   color: Color.fromARGB(255, 223, 121, 121),

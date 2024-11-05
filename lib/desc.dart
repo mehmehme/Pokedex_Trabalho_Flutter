@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
-import 'package:pokedex/data/data.dart';
+import 'package:provider/provider.dart';
+
+import '../data/modelo_data.dart';
+import '../repositorio/reposi_poke.dart';
 
 class Descricao extends StatelessWidget {
   final Pokemon pokemon;
@@ -14,24 +14,20 @@ class Descricao extends StatelessWidget {
     required this.pokemon,
   });
 
-  Future<Pokemon> _fetchPokemonData() async {
+  Future<Pokemon> _fetchPokemonData(BuildContext context) async {
+    // Acessa o repositório
+    var repository = context.read<PokemonRepository>();
+    
     // Verifica a conectividade
     var connectivityResult = await Connectivity().checkConnectivity();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
     
     if (connectivityResult == ConnectivityResult.none) {
       // Sem internet, carregue do cache
-      String? cachedData = prefs.getString('pokemon_${pokemon.id}');
-      if (cachedData != null) {
-        return Pokemon.fromJson(jsonDecode(cachedData));
-      } else {
-        throw Exception('Dados do Pokémon não encontrados no cache.');
-      }
+      return await repository.pokemonDao.getAllCachedPokemons() as Pokemon;
     } else {
       // Conectado, carregue da API e armazene no cache
-      Pokemon? pokemonDetails = await servicPoke.PokemonService.fetchPokemonDetails(pokemon.name);
-      prefs.setString('pokemon_${pokemonDetails.id}', jsonEncode(pokemonDetails.toJson()));
-      return pokemon;
+      Pokemon pokemonDetails = await repository.pokemonNetwork.fetchPokemonList() as Pokemon;
+      return pokemonDetails;
     }
   }
 
@@ -59,7 +55,7 @@ class Descricao extends StatelessWidget {
         ),
       ),
       body: FutureBuilder<Pokemon>(
-        future: _fetchPokemonData(),
+        future: _fetchPokemonData(context),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -96,7 +92,7 @@ class Descricao extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemon.id),
+                            imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.error),
                             fit: BoxFit.cover,
@@ -142,12 +138,12 @@ class Descricao extends StatelessWidget {
                               ),
                             ),
                             const Divider(),
-                            for (var key in pokemon.base.keys)
+                            for (var key in pokemon.base!.keys)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '$key: ${pokemon.base[key]}',
+                                    '$key: ${pokemon.base![key]}',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -156,7 +152,7 @@ class Descricao extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 5),
                                   LinearProgressIndicator(
-                                    value: pokemon.base[key] / 100,
+                                    value: pokemon.base![key] / 100,
                                     backgroundColor: Colors.white54,
                                     color: Colors.white,
                                   ),

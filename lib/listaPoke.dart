@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:pokedex/data/data.dart';
-import 'package:pokedex/data/servicoPoke.dart';
 import 'package:pokedex/desc.dart';
+import 'package:provider/provider.dart';
+
+import '../data/modelo_data.dart';
+import '../repositorio/reposi_poke.dart';
 
 class ListaPoke extends StatefulWidget {
   const ListaPoke({super.key});
@@ -13,81 +14,45 @@ class ListaPoke extends StatefulWidget {
 }
 
 class _ListaPokeState extends State<ListaPoke> {
-  Map<int, Pokemon> pokemons = {};
+  List<Pokemon> pokemons = [];
   bool isLoading = false;
   bool hasMore = true;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialPokemons();
+    _loadPokemons();
   }
 
-  Future<bool> hasInternetConnection() async {
-    try {
-      final result = await InternetAddress.lookup('google.com');
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } on SocketException catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> _loadInitialPokemons() async {
+  Future<void> _loadPokemons() async {
+    if (isLoading) return;
+    
     setState(() {
       isLoading = true;
     });
 
     try {
-      if (await hasInternetConnection()) {
-        // Carrega os Pokémons da API e salva no cache
-        var result = await PokemonService.loadInitialPokemons();
+      var fetchedPokemons = await context.read<PokemonRepository>().getPokemons();
+      if (mounted) { // Verifica se o widget está montado
         setState(() {
-          pokemons = result.pokemons;
-          hasMore = result.hasMore;
+          pokemons = fetchedPokemons;
+          hasMore = fetchedPokemons.isNotEmpty;
         });
-      } else {
-        // Carrega os Pokémons do cache
-        var cachedPokemons = await PokemonService.loadCachedPokemons();
+      } 
+      }catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao carregar os Pokémons: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
         setState(() {
-          pokemons = cachedPokemons;
-          hasMore = cachedPokemons.isNotEmpty;
+          isLoading = false;
         });
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar Pokémon: $e')),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
     }
-  }
-
-
-  Future<void> _loadMorePokemons() async {
-    if (isLoading || !hasMore) return;
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      var result = await PokemonService.loadMorePokemons(pokemons);
-      setState(() {
-        pokemons.addAll(result.pokemons); // Adiciona os novos Pokémons à lista
-        hasMore = result.hasMore;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar mais Pokémon: $e')),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +63,7 @@ class _ListaPokeState extends State<ListaPoke> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color.fromARGB(255, 255, 255, 255), Color.fromARGB(255, 177, 53, 53)],
+              colors: [Color.fromARGB(255, 65, 50, 78), Color.fromARGB(255, 65, 50, 78)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -116,7 +81,7 @@ class _ListaPokeState extends State<ListaPoke> {
       body: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification scrollInfo) {
           if (!isLoading && hasMore && scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
-            _loadMorePokemons();
+            _loadPokemons();
           }
           return true;
         },
@@ -129,7 +94,7 @@ class _ListaPokeState extends State<ListaPoke> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final pokemon = pokemons.values.elementAt(index);
+                  final pokemon = pokemons[index];
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
@@ -140,9 +105,7 @@ class _ListaPokeState extends State<ListaPoke> {
                     child: GestureDetector(
                       onTap: () async {
                         Pokemon fullPokemon = pokemon;
-                        if (!await hasInternetConnection()) {
-                          fullPokemon = await PokemonService.fetchPokemonDetails(pokemon.name); // Carrega detalhes do cache
-                        }
+                        
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -155,7 +118,7 @@ class _ListaPokeState extends State<ListaPoke> {
                         margin: const EdgeInsets.symmetric(vertical: 4.0),
                         child: ListTile(
                           leading: CachedNetworkImage(
-                            imageUrl: PokemonService.getPokemonImageUrl(pokemon.id),
+                            imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                             fit: BoxFit.cover,

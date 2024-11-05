@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:pokedex/data/data.dart';
 import 'package:pokedex/estilos/fundoPokedex.dart';
 import 'package:pokedex/meuPok.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pokedex/data/servicoPoke.dart' as servicPoke;
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:pokedex/repositorio/reposi_poke.dart';
+import 'package:provider/provider.dart';
+import '../dao/pokemon_dao.dart';
+import '../network/net_poke.dart';
+import '../data/modelo_data.dart';
 
 class Time extends StatefulWidget {
   final List<int>? pokemons; // Recebe a lista de Pokémon capturados
@@ -21,59 +21,27 @@ class Time extends StatefulWidget {
 }
 
 class _TimeState extends State<Time> {
-  late Future<Map<int, Pokemon>> pokemonMapFuture;
+  late Future<List<Pokemon>> pokemonMapFuture;
   late List<int> _currentPokemons;
+  late PokemonRepository pokemonRepository;
 
   @override
   void initState() { 
     super.initState();
     _currentPokemons = widget.pokemons ?? []; // Garante que não seja nulo
 
-    // Carrega a lista de Pokémon capturados do SharedPreferences
-    _loadCapturedPokemonsFromStorage();
+    // Inicializa o repositório de Pokémon
+    pokemonRepository = PokemonRepository(
+      pokemonDao: PokemonDao(), // Supondo que você tenha uma instância de PokemonDao
+      pokemonNetwork: PokemonNetwork(), // Supondo que você tenha uma instância de PokemonNetwork
+    );
 
+    // Carrega a lista de Pokémon capturados usando o repositório
     pokemonMapFuture = _loadCapturedPokemons();
   }
 
-  Future<void> _loadCapturedPokemonsFromStorage() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? capturedList = prefs.getStringList('capturedPokemons');
-
-    if (capturedList != null) {
-      setState(() {
-        _currentPokemons = capturedList.map((e) => int.parse(e)).toList();
-      });
-    }
-  }
-
-
-  Future<void> _cachePokemonData(Map<int, Pokemon> pokemonMap) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    for (var entry in pokemonMap.entries) {
-      prefs.setString('pokemon_${entry.key}', jsonEncode(entry.value.toJson()));
-    }
-  }
-
-  Future<Map<int, Pokemon>> _loadCapturedPokemons() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    Map<int, Pokemon> pokemonMap = {};
-    var connectivityResult = await Connectivity().checkConnectivity();
-    bool isConnected = connectivityResult != ConnectivityResult.none;
-
-    for (int id in _currentPokemons) {
-      String? pokemonData = prefs.getString('pokemon_$id');
-      if (pokemonData != null) {
-        pokemonMap[id] = Pokemon.fromJson(jsonDecode(pokemonData));
-      }
-    }
-
-    if (pokemonMap.isEmpty && isConnected) {
-      List fetchedPokemons = await servicPoke.PokemonService.fetchAllPokemons();
-      pokemonMap = {for (var pokemon in fetchedPokemons) pokemon.id: pokemon};
-      await _cachePokemonData(pokemonMap);
-    }
-
-    return pokemonMap;
+  Future<List<Pokemon>> _loadCapturedPokemons() async {
+    return await pokemonRepository.getPokemons(); // Chama o método do repositório
   }
 
   void resetPokemons() {
@@ -123,7 +91,7 @@ class _TimeState extends State<Time> {
             child: Column(
               children: [
                 Expanded(
-                  child: FutureBuilder<Map<int, Pokemon>>(
+                  child: FutureBuilder<List<Pokemon>>(
                     future: pokemonMapFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -142,12 +110,6 @@ class _TimeState extends State<Time> {
 
                             if (_currentPokemons.isEmpty) {
                               return Center(child: Text('Você ainda não capturou nenhum Pokémon.'));
-                            }
-
-                            if (pokemon == null) {
-                              return ListTile(
-                                title: Text("Pokémon não encontrado"),
-                              );
                             }
 
                             return Container(
@@ -173,6 +135,7 @@ class _TimeState extends State<Time> {
                                             _currentPokemons.removeWhere((pokeId) => pokeId == id);
                                           });
                                         },
+                                        pokemonRepository: Provider.of<PokemonRepository>(context, listen: false),
                                       ),
                                     ),
                                   );
@@ -182,7 +145,7 @@ class _TimeState extends State<Time> {
                                   margin: EdgeInsets.symmetric(vertical: 4.0),
                                   child: ListTile(
                                     leading: CachedNetworkImage(
-                                      imageUrl: servicPoke.PokemonService.getPokemonImageUrl(pokemon.id),
+                                      imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
                                       placeholder: (context, url) => CircularProgressIndicator(),
                                       errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                                       fit: BoxFit.cover,

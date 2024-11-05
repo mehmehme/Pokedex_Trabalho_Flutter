@@ -141,7 +141,7 @@ class _ListaPokeState extends State<ListaPoke> {
                       onTap: () async {
                         Pokemon fullPokemon = pokemon;
                         if (!await hasInternetConnection()) {
-                          fullPokemon = await PokemonService.fetchPokemonDetails(pokemon.id as String); // Carrega detalhes do cache
+                          fullPokemon = await PokemonService.fetchPokemonDetails(pokemon.name); // Carrega detalhes do cache
                         }
                         Navigator.push(
                           context,

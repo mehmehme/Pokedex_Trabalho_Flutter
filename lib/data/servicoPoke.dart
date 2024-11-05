@@ -160,7 +160,8 @@ class PokemonService {
   // Cacheia a lista de Pokémon
   static Future<void> _cachePokemons(List<Pokemon> pokemons) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('cachedPokemons', json.encode(pokemons.map((p) => p.toJson()).toList()));
+    var jsonString = json.encode(pokemons.map((p) => p.toJson()).toList());
+     prefs.setString('cachedPokemons', jsonString);
   }
 
   static Future<Map<String, dynamic>> getPokemonById(int id) async {

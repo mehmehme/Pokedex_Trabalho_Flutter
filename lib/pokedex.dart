@@ -18,7 +18,7 @@ class _PokedexState extends State<Pokedex> {
       body: Stack(
       children:[
         fundoGradiente(),
-        PokemonListScreen(),
+        ListaPoke(),
       ],
       ),
     );

@@ -1,13 +1,9 @@
-
-
-
-
 class Pokemon {
   final int id;
-  final String name; 
+  final Map<String,String> name; 
   final List<String> type; 
   String? imgUrl; 
-  final Map<String, dynamic>? base; 
+  final Map<String, int>? base; 
 
   Pokemon({
     required this.id,
@@ -20,9 +16,9 @@ class Pokemon {
   factory Pokemon.fromJson(Map<String, dynamic> json) {
     return Pokemon(
       id: json['id'] as int,
-      name: json['name']['english'] ?? 'Nome não disponível',
+      name: json['name']['english'],
       type: List<String>.from((json['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
-      base: json['base'] as Map<String, dynamic>? ?? {},
+      base: json['base'] as Map<String, int>? ?? {},
     );
   }
 
@@ -31,7 +27,7 @@ class Pokemon {
     return {
       'id': id,
       'name': {
-        'english': name,
+        'english': name['english'],
       },
       'type': type,
       'img': imgUrl,

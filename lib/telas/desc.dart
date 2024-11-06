@@ -114,7 +114,7 @@ class Descricao extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              pokemon.name,
+                              pokemon.name as String,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -152,7 +152,7 @@ class Descricao extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 5),
                                   LinearProgressIndicator(
-                                    value: pokemon.base![key] / 100,
+                                    value: pokemon.base![key]! / 100,
                                     backgroundColor: Colors.white54,
                                     color: Colors.white,
                                   ),

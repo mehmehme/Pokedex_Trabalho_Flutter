@@ -128,7 +128,7 @@ class _TimeState extends State<Time> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => MeuPok(
-                                        pokemonName: pokemon.name,
+                                        pokemonName: pokemon.name as String,
                                         pokemonId: pokemonId,
                                         team: currentTeam,
                                         onRelease: (id) {
@@ -152,7 +152,7 @@ class _TimeState extends State<Time> {
                                       fit: BoxFit.cover,
                                     ),
                                     title: Text(
-                                      pokemon.name,
+                                      pokemon.name as String,
                                       style: const TextStyle(
                                         color: Color.fromARGB(255, 255, 255, 255),
                                         fontWeight: FontWeight.bold,

@@ -6,7 +6,6 @@ import 'package:pokedex/telas/desc.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/modelo_data.dart';
-import '../../repositorio/reposi_poke.dart';
 
 class ListaPoke extends StatefulWidget {
   const ListaPoke({super.key});
@@ -129,7 +128,7 @@ class _ListaPokeState extends State<ListaPoke> {
                             fit: BoxFit.cover,
                           ),
                           title: Text(
-                            pokemon.name,
+                            pokemon.name as String,
                             style: const TextStyle(
                               color: Color.fromARGB(255, 255, 255, 255),
                               fontWeight: FontWeight.bold,

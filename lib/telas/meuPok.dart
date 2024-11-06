@@ -117,7 +117,7 @@ class MeuPok extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              pokemon.name,
+                              pokemon.name as String,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -155,7 +155,7 @@ class MeuPok extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   LinearProgressIndicator(
-                                    value: pokemon.base![key] / 100,
+                                    value: pokemon.base![key]! / 100,
                                     backgroundColor: Colors.white54,
                                     color: Colors.white,
                                   ),

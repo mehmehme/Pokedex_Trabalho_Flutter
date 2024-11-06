@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:pokedex/repositorio/reposi_poke_impl.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/modelo_data.dart';
-import '../../repositorio/reposi_poke.dart';
 
 class Descricao extends StatelessWidget {
   final Pokemon pokemon;
@@ -16,7 +16,7 @@ class Descricao extends StatelessWidget {
 
   Future<Pokemon> _fetchPokemonData(BuildContext context) async {
     // Acessa o repositório
-    var repository = context.read<PokemonRepository>();
+    var repository = context.read<PokemonRepositoryImpl>();
     
     // Verifica a conectividade
     var connectivityResult = await Connectivity().checkConnectivity();
@@ -26,7 +26,7 @@ class Descricao extends StatelessWidget {
       return await repository.pokemonDao.getAllCachedPokemons() as Pokemon;
     } else {
       // Conectado, carregue da API e armazene no cache
-      Pokemon pokemonDetails = await repository.pokemonNetwork.fetchPokemonList() as Pokemon;
+      Pokemon pokemonDetails = await repository.networkMapper.fetchPokemonList() as Pokemon;
       return pokemonDetails;
     }
   }
@@ -92,7 +92,7 @@ class Descricao extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
+                            imageUrl: context.read<PokemonRepositoryImpl>().networkMapper.getPokemonImageUrl(pokemon.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.error),
                             fit: BoxFit.cover,

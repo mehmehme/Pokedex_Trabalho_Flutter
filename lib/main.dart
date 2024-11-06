@@ -1,38 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:pokedex/dao/pokemon_dao.dart';
+import 'package:pokedex/data/providersTree.dart';
 import 'package:pokedex/estilos/botoes.dart';
 import 'package:provider/provider.dart';
 import 'telas/pokedex.dart';
-import 'telas/(back)timePok.dart';
 import 'telas/captura.dart';
 import 'estilos/fundoPoke.dart';
-import '../repositorio/reposi_poke.dart';
-import '../network/net_poke.dart';
+import '../telas/timePok.dart';
 
-void main() {
-  runApp(MainApp());
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final data = await ConfigureProviders.createDependencyTree();
+  runApp(MainApp(data: data));
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  const MainApp({super.key, required this.data});
+  final ConfigureProviders data;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        Provider<PokemonDao>(
-          create: (_) => PokemonDao(),
-        ),
-        Provider<PokemonNetwork>(
-          create: (_) => PokemonNetwork(),
-        ),
-        Provider<PokemonRepository>(
-          create: (context) => PokemonRepository(
-            pokemonDao: Provider.of<PokemonDao>(context, listen: false),
-            pokemonNetwork: Provider.of<PokemonNetwork>(context, listen: false),
-          ),
-        ),
-      ],
+      providers: data.providers,
       child: MaterialApp(
       debugShowCheckedModeBanner: false,
       home: const MyApp(),

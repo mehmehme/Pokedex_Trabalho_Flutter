@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:pokedex/repositorio/reposi_poke_impl.dart';
 import 'package:pokedex/telas/desc.dart';
 import 'package:provider/provider.dart';
 
@@ -14,13 +16,13 @@ class ListaPoke extends StatefulWidget {
 }
 
 class _ListaPokeState extends State<ListaPoke> {
-  List<Pokemon> pokemons = [];
+  Map<int,Pokemon> pokemons = {};
   bool isLoading = false;
   bool hasMore = true;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadPokemons();
   }
 
@@ -32,18 +34,20 @@ class _ListaPokeState extends State<ListaPoke> {
     });
 
     try {
-      var fetchedPokemons = await context.read<PokemonRepository>().getPokemons();
+      var fetchedPokemons = await context.read<PokemonRepositoryImpl>().getPokemons();
       if (mounted) { // Verifica se o widget está montado
         setState(() {
           pokemons = fetchedPokemons;
           hasMore = fetchedPokemons.isNotEmpty;
         });
       } 
-      }catch (e) {
+    } catch (e) {
       if (mounted) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erro ao carregar os Pokémons: $e")),
         );
+      });
       }
     } finally {
       if (mounted) {
@@ -52,7 +56,8 @@ class _ListaPokeState extends State<ListaPoke> {
         });
       }
     }
-}
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +109,7 @@ class _ListaPokeState extends State<ListaPoke> {
                     ),
                     child: GestureDetector(
                       onTap: () async {
-                        Pokemon fullPokemon = pokemon;
+                        Pokemon? fullPokemon = pokemon;
                         
                         Navigator.push(
                           context,
@@ -118,7 +123,7 @@ class _ListaPokeState extends State<ListaPoke> {
                         margin: const EdgeInsets.symmetric(vertical: 4.0),
                         child: ListTile(
                           leading: CachedNetworkImage(
-                            imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
+                            imageUrl: context.read<PokemonRepositoryImpl>().networkMapper.getPokemonImageUrl(pokemon!.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                             fit: BoxFit.cover,

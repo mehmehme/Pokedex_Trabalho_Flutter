@@ -1,3 +1,4 @@
+
 import '../data/modelo_data.dart';
 
 class NetMapa {
@@ -7,13 +8,12 @@ class NetMapa {
       id: json['id'] as int, // Assegura que o ID seja um inteiro
       name: json['name']['english'] ?? 'Nome não disponível',
       type: List<String>.from(json['type'] ?? []),
-      img: null, // Pode ser ajustado conforme necessário
       base: json['base'] ?? {},
     );
   }
 
   // Método para mapear uma lista de JSON para uma lista de objetos Pokemon
-  static List<Pokemon> fromJsonList(List<dynamic> jsonList) {
-    return jsonList.map((json) => fromJson(json)).toList();
+  static Map<int, Pokemon> fromJsonMap(List<dynamic> jsonList) {
+  return {for (var json in jsonList) json['id'] as int: fromJson(json)};
   }
 }

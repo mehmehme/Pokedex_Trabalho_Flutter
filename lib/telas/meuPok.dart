@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:pokedex/data/modelo_data.dart';
 import 'package:pokedex/repositorio/reposi_poke.dart';
+import 'package:pokedex/repositorio/reposi_poke_impl.dart';
 import 'package:provider/provider.dart';
 
 class MeuPok extends StatelessWidget {
@@ -21,12 +22,14 @@ class MeuPok extends StatelessWidget {
   });
 
   Future<Pokemon> _fetchPokemonData() async {
-    return await pokemonRepository.getPokemons().then((pokemons) {
-      // Filtrar o Pokémon específico da lista
-      return pokemons.firstWhere((p) => p.id == pokemonId, 
-      orElse: () => throw Exception('Pokémon não encontrado'));
-    });
-  }
+  return await pokemonRepository.getPokemons().then((pokemons) {
+    final pokemon = pokemons[pokemonId];
+    if (pokemon == null) {
+      throw Exception('Pokémon não encontrado');
+    }
+    return pokemon;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +95,7 @@ class MeuPok extends StatelessWidget {
                         ),
                         child: ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
+                            imageUrl: context.read<PokemonRepositoryImpl>().networkMapper.getPokemonImageUrl(pokemon.id),
                             placeholder: (context, url) => const CircularProgressIndicator(),
                             errorWidget: (context, url, error) => const Icon(Icons.error),
                             fit: BoxFit.cover,

@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+/*import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:pokedex/estilos/fundoPokedex.dart';
 import 'package:pokedex/telas/meuPok.dart';
@@ -217,4 +217,4 @@ class _TimeState extends State<Time> {
       ),
     );
   }
-}
+}*/

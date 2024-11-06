@@ -1,11 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:pokedex/estilos/fundoPokedex.dart';
+import 'package:pokedex/repositorio/reposi_poke_impl.dart';
 import 'package:pokedex/telas/meuPok.dart';
 import 'package:pokedex/repositorio/reposi_poke.dart';
 import 'package:provider/provider.dart';
-import '../../dao/pokemon_dao.dart';
-import '../../network/net_poke.dart';
 import '../../data/modelo_data.dart';
 
 class Time extends StatefulWidget {
@@ -21,32 +20,20 @@ class Time extends StatefulWidget {
 }
 
 class _TimeState extends State<Time> {
-  late final Future<List<Pokemon>> pokemonMap;
+  late Future<Map<int, Pokemon>> pokemonMapFuture;
   late List<int> _currentPokemons;
-  late PokemonRepository pokemonRepository;
 
   @override
-  void initState() { 
+  void initState() {
     super.initState();
-
-
-
-    print('_currentPokemons após inicialização: $_currentPokemons'); // Verificação do conteúdo
-
-    // Inicializa o repositório de Pokémon
-    pokemonRepository = PokemonRepository(
-      pokemonDao: PokemonDao(),
-      pokemonNetwork: PokemonNetwork(),
-    );
-
-    // Carrega a lista de Pokémon capturados usando o repositório
-    pokemonMap = _loadCapturedPokemons();
+    _currentPokemons = widget.pokemons ?? []; // Verificação do conteúdo
+    pokemonMapFuture = _loadCapturedPokemons(); // Inicia o carregamento dos Pokémons
   }
 
-  Future<List<Pokemon>> _loadCapturedPokemons() async {
-    List<Pokemon> pokemons = await pokemonRepository.getPokemons();
-    print('Lista de pokemons carregada: ${pokemons.map((p) => p.id).toList()}'); // Verificação do conteúdo
-    return pokemons;
+  // Carrega os Pokémons usando o repositório
+  Future<Map<int, Pokemon>> _loadCapturedPokemons() async {
+    final pokemonRepository = context.read<PokemonRepositoryImpl>(); // Acessa o repositório via Provider
+    return await pokemonRepository.getPokemons(); // Carrega os Pokémons do repositório
   }
 
   void resetPokemons() {
@@ -96,16 +83,15 @@ class _TimeState extends State<Time> {
             child: Column(
               children: [
                 Expanded(
-                  child: FutureBuilder<List<Pokemon>>(
-                    future: pokemonMap,
+                  child: FutureBuilder<Map<int,Pokemon>>(
+                    future: pokemonMapFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
-                        print('Erro ao carregar os Pokémons: ${snapshot.error}');
                         return Center(child: Text('Erro: ${snapshot.error}'));
                       } else {
-                        final pokemonMap = snapshot.data ?? [];
+                        final pokemonMap = snapshot.data!;
 
                         if (_currentPokemons.isEmpty) {
                           return Center(child: Text('Você ainda não capturou nenhum Pokémon.'));
@@ -114,22 +100,12 @@ class _TimeState extends State<Time> {
                         return ListView.builder(
                           itemCount: _currentPokemons.length > 6 ? 6 : _currentPokemons.length,
                           itemBuilder: (context, index) {
-                            final pokemonId = _currentPokemons[index];
-                            final pokemon = pokemonMap.firstWhere(
-                              (poke) => poke.id == pokemonId,
-                              orElse: () => Pokemon(id: -1, name: 'Desconhecido', type: [], base: {}),
-                            );
+                             final pokemonId = _currentPokemons[index];
+                             final pokemon = pokemonMap[pokemonId];
 
-                            if (pokemon.id == -1) {
-                              return const Center(
-                                child: Text(
-                                  "Não há ninguém aqui!",
-                                  style: TextStyle(
-                                    color: Color.fromARGB(255, 71, 26, 71),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
+                            if (pokemon == null) {
+                              return ListTile(
+                                title: Text("Pokémon não encontrado"),
                               );
                             }
 
@@ -143,8 +119,9 @@ class _TimeState extends State<Time> {
                               child: GestureDetector(
                                 onTap: () {
                                   final currentTeam = _currentPokemons
-                                      .map((id) => pokemonMap.firstWhere((poke) => poke.id == id, orElse: () => Pokemon(id: -1, name: 'Desconhecido', type: [], base: {})))
-                                      .where((poke) => poke.id != -1)
+                                      .map((id) => pokemonMap[id])
+                                      .where((poke) => poke != null)
+                                      .cast<Pokemon>()
                                       .toList();
 
                                   Navigator.push(
@@ -152,11 +129,11 @@ class _TimeState extends State<Time> {
                                     MaterialPageRoute(
                                       builder: (context) => MeuPok(
                                         pokemonName: pokemon.name,
-                                        pokemonId: pokemon.id,
+                                        pokemonId: pokemonId,
                                         team: currentTeam,
                                         onRelease: (id) {
                                           setState(() {
-                                            _currentPokemons.removeWhere((pokemonId) => pokemonId == id);
+                                            _currentPokemons.removeWhere((pokeId) => pokeId == id);
                                           });
                                         },
                                         pokemonRepository: Provider.of<PokemonRepository>(context, listen: false),
@@ -169,7 +146,7 @@ class _TimeState extends State<Time> {
                                   margin: EdgeInsets.symmetric(vertical: 4.0),
                                   child: ListTile(
                                     leading: CachedNetworkImage(
-                                      imageUrl: context.read<PokemonRepository>().pokemonNetwork.getPokemonImageUrl(pokemon.id),
+                                      imageUrl: context.read<PokemonRepositoryImpl>().networkMapper.getPokemonImageUrl(pokemon.id),
                                       placeholder: (context, url) => CircularProgressIndicator(),
                                       errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                                       fit: BoxFit.cover,
@@ -190,15 +167,15 @@ class _TimeState extends State<Time> {
                                 ),
                               ),
                             );
-                          },
+                          }
                         );
                       }
-                    },
+                    }
                   ),
                 ),
                 SizedBox(height: 10.0),
                 Text(
-                  '${_currentPokemons.length < 6 ? 6 - _currentPokemons.length : 0} espaço(s) restante(s)',
+                  ' ${_currentPokemons.length < 6 ? 6 - _currentPokemons.length : 0} espaço(s) restante(s)',
                   style: TextStyle(
                     fontSize: 20.0,
                     color: Colors.white,
@@ -206,7 +183,7 @@ class _TimeState extends State<Time> {
                 ),
               ],
             ),
-          ),
+          ),                       
         ],
       ),
     );

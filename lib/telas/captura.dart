@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:pokedex/estilos/botoes.dart';
-import 'package:pokedex/telas/(back)timePok.dart';
+import 'package:pokedex/telas/timePok.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Captura extends StatefulWidget {

@@ -46,10 +46,13 @@ class PokemonDao {
     );
   }
 
-  Future<List<Pokemon>> getAllCachedPokemons() async {
+  Future<Map<int, Pokemon>> getAllCachedPokemons() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(tablePokemon);
 
-    return maps.map((map) => Pokemon.fromJson(map)).toList();
+    return {
+      for (var map in maps)
+        map['id'] as int: Pokemon.fromJson(map)
+    };
   }
 }

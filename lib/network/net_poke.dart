@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pokedex/data/data.dart';
 import '../data/modelo_data.dart';
 
 class PokemonNetwork {

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:pokedex/data/data.dart';
 import 'package:pokedex/data/modelo_data.dart';
 
 class ApiClient {

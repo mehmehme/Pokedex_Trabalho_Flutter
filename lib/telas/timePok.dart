@@ -1,39 +1,77 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
+import 'package:pokedex/data/data.dart';
 import 'package:pokedex/estilos/fundoPokedex.dart';
-import 'package:pokedex/repositorio/reposi_poke_impl.dart';
-import 'package:pokedex/telas/meuPok.dart';
 import 'package:pokedex/repositorio/reposi_poke.dart';
+import 'package:pokedex/repositorio/reposi_poke_impl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+
 import '../../data/modelo_data.dart';
+import 'meuPok.dart';
 
 class Time extends StatefulWidget {
   final List<int>? pokemons;
 
-  const Time({
-    super.key,
-    this.pokemons,
-  });
+  const Time({super.key, this.pokemons});
 
   @override
   State<Time> createState() => _TimeState();
 }
 
 class _TimeState extends State<Time> {
-  late Future<Map<int, Pokemon>> pokemonMapFuture;
   late List<int> _currentPokemons;
+  late Future<Map<int, Pokemon>> pokemonMapFuture;
 
   @override
   void initState() {
     super.initState();
-    _currentPokemons = widget.pokemons ?? []; // Verificação do conteúdo
-    pokemonMapFuture = _loadCapturedPokemons(); // Inicia o carregamento dos Pokémons
+    _currentPokemons = widget.pokemons ?? [];
+    pokemonMapFuture = _loadCapturedPokemons(); // Carrega Pokémons
   }
 
-  // Carrega os Pokémons usando o repositório
   Future<Map<int, Pokemon>> _loadCapturedPokemons() async {
-    final pokemonRepository = context.read<PokemonRepositoryImpl>(); // Acessa o repositório via Provider
-    return await pokemonRepository.getPokemons(); // Carrega os Pokémons do repositório
+    try {
+      final response = await http.get(Uri.parse("http://192.168.0.23:3000/pokemon"));
+      if (response.statusCode == 200) {
+        var pokemons = jsonDecode(response.body);
+        _cachePokemons(pokemons); // Armazena os dados em cache
+        return _convertToMap(pokemons);
+      } else {
+        var cachedPokemons = await _getCachedPokemons();
+        if (cachedPokemons != null) {
+          return _convertToMap(cachedPokemons);
+        } else {
+          throw Exception('Erro ao carregar Pokémons.');
+        }
+      }
+    } catch (e) {
+      var cachedPokemons = await _getCachedPokemons();
+      if (cachedPokemons != null) {
+        return _convertToMap(cachedPokemons);
+      } else {
+        throw Exception('Erro ao carregar Pokémons.');
+      }
+    }
+  }
+
+  Future<void> _cachePokemons(List<dynamic> pokemons) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('cachedPokemons', jsonEncode(pokemons));
+  }
+
+  Future<List<dynamic>?> _getCachedPokemons() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? cachedData = prefs.getString('cachedPokemons');
+    return cachedData != null ? jsonDecode(cachedData) : null;
+  }
+
+  Map<int, Pokemon> _convertToMap(List<dynamic> pokemons) {
+    return {
+      for (var p in pokemons) p['id']: Pokemon.fromJson(p),
+    };
   }
 
   void resetPokemons() {
@@ -61,11 +99,7 @@ class _TimeState extends State<Time> {
         ),
         title: Text(
           'Seu time',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         actions: [
           IconButton(
@@ -128,7 +162,7 @@ class _TimeState extends State<Time> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => MeuPok(
-                                        pokemonName: pokemon.name as String,
+                                        pokemonName: pokemon.englishName,
                                         pokemonId: pokemonId,
                                         team: currentTeam,
                                         onRelease: (id) {
@@ -152,7 +186,7 @@ class _TimeState extends State<Time> {
                                       fit: BoxFit.cover,
                                     ),
                                     title: Text(
-                                      pokemon.name as String,
+                                      pokemon.englishName,
                                       style: const TextStyle(
                                         color: Color.fromARGB(255, 255, 255, 255),
                                         fontWeight: FontWeight.bold,

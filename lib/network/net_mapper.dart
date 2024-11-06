@@ -1,4 +1,6 @@
 
+import 'package:pokedex/data/data.dart';
+
 import '../data/modelo_data.dart';
 
 class NetMapa {
@@ -6,9 +8,12 @@ class NetMapa {
   static Pokemon fromJson(Map<String, dynamic> json) {
     return Pokemon(
       id: json['id'] as int, // Assegura que o ID seja um inteiro
-      name: json['name']['english'] ?? 'Nome não disponível',
+      englishName: json['name']['english'] ?? 'Nome não disponível',
       type: List<String>.from(json['type'] ?? []),
-      base: json['base'] ?? {},
+      base: json['base'] ?? {}, 
+      japaneseName: '', 
+      chineseName: '', 
+      frenchName: '',
     );
   }
 

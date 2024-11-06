@@ -1,3 +1,4 @@
+import 'package:pokedex/data/data.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../data/modelo_data.dart';
@@ -41,7 +42,8 @@ class PokemonDao {
     final db = await database;
     await db.insert(
       tablePokemon,
-      pokemon.toMap(),
+      pokemon.toJson(),
+      //pokemon.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }

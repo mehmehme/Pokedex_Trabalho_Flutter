@@ -1,9 +1,9 @@
-class Pokemon {
+/*class Pokemon {
   final int id;
-  final Map<String,String> name; 
+  final String name; 
   final List<String> type; 
   String? imgUrl; 
-  final Map<String, int>? base; 
+  final Map<String, dynamic>? base; 
 
   Pokemon({
     required this.id,
@@ -18,7 +18,7 @@ class Pokemon {
       id: json['id'] as int,
       name: json['name']['english'],
       type: List<String>.from((json['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
-      base: json['base'] as Map<String, int>? ?? {},
+      base: json['base'] as Map<String, dynamic>? ?? {},
     );
   }
 
@@ -27,11 +27,11 @@ class Pokemon {
     return {
       'id': id,
       'name': {
-        'english': name['english'],
+        'english': name,
       },
       'type': type,
       'img': imgUrl,
       'base': base,
     };
   }
-}
+}*/

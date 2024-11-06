@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:pokedex/data/data.dart';
 import 'package:pokedex/repositorio/reposi_poke_impl.dart';
 import 'package:provider/provider.dart';
 
@@ -114,7 +115,7 @@ class Descricao extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              pokemon.name as String,
+                              pokemon.englishName,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

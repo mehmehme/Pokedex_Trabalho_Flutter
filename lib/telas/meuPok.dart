@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:pokedex/data/data.dart';
 import 'package:pokedex/data/modelo_data.dart';
 import 'package:pokedex/repositorio/reposi_poke.dart';
 import 'package:pokedex/repositorio/reposi_poke_impl.dart';
@@ -117,7 +118,7 @@ class MeuPok extends StatelessWidget {
                         child: Column(
                           children: [
                             Text(
-                              pokemon.name as String,
+                              pokemon.englishName,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

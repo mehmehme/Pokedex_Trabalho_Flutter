@@ -1,20 +1,25 @@
 import 'dart:convert';
+import 'package:pokedex/data/data.dart';
+
 import '../data/modelo_data.dart';
 
 class PokeMapa {
   static Pokemon fromJson(Map<String, dynamic> json) {
   return Pokemon(
     id: json['id'] as int,
-    name: json['name']['english'],
+    englishName: json['name']['english'],
     type: List<String>.from((json['type'] as List<dynamic>? ?? []).map((e) => e.toString())),
-    base: json['base'] as Map<String, int>? ?? {},
+    base: json['base'] as Map<String, int>? ?? {}, 
+    japaneseName: '', 
+    chineseName: '', 
+    frenchName: '',
   );
 }
 
   static Map<String, dynamic> toMap(Pokemon pokemon) {
     return {
       'id': pokemon.id,
-      'name': pokemon.name,
+      'name': pokemon.englishName,
       'type': pokemon.type,
       'img': pokemon.imgUrl,
       'base': pokemon.base,
@@ -27,7 +32,7 @@ class Mapinha{
     return {
       'id': pokemon.id,
       'name': {
-        'english': pokemon.name,
+        'english': pokemon.englishName,
       },
       'type': jsonEncode(pokemon.type), // Serializa a lista de tipos
       'img': pokemon.imgUrl, // Armazena os bytes da imagem, se aplicável
@@ -38,10 +43,13 @@ class Mapinha{
   static Pokemon fromMap(Map<String, dynamic> map) {
     return Pokemon(
       id: map['id'],
-      name: map['name']['english'] ?? 'Nome não disponível',
+      englishName: map['name']['english'] ?? 'Nome não disponível',
       type: List<String>.from(jsonDecode(map['type'])),
       imgUrl: map['img'],
-      base: jsonDecode(map['base']),
+      base: jsonDecode(map['base']), 
+      japaneseName: '', 
+      chineseName: '', 
+      frenchName: '',
     );
   }
 

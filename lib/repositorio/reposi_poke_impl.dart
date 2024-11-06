@@ -1,3 +1,4 @@
+import 'package:pokedex/data/data.dart';
 import 'package:pokedex/repositorio/ApiClient.dart';
 import 'package:pokedex/repositorio/reposi_poke.dart';
 
